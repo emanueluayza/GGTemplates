@@ -10,11 +10,11 @@ struct Constants {
     }
     
     struct Files {
-        static let mvvmTemplate = "GGT-MVVM.xctemplate"
+        static let mvvmTemplate = "MVVM.xctemplate"
     }
     
     struct Paths {
-        static let destinationPath = "/Library/Xcode/Templates/File Templates/GGToolsTemplates"
+        static let destinationPath = "/Library/Xcode/Templates/File Templates/GGTools Templates"
     }
 
     struct Messages {
