@@ -3,12 +3,11 @@
 import Foundation
 
 class ___FILEBASENAMEASIDENTIFIER___: ___FILEBASENAMEASIDENTIFIER___Protocol {
-
     
     // MARK: - ___FILEBASENAMEASIDENTIFIER___Protocol
     
-    func add() {}
-    func delete() {}
-    func get() {}
-    func update() {}
+    func add___VARIABLE_productName:identifier___() {}
+    func delete___VARIABLE_productName:identifier___() {}
+    func get___VARIABLE_productName:identifier___() {}
+    func update___VARIABLE_productName:identifier___() {}
 }
