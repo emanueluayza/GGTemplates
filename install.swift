@@ -1,4 +1,5 @@
 import Foundation
+import AppKit
 
 // MARK: - Constants
 
@@ -139,8 +140,151 @@ func bash(command: String, arguments: [String]) -> String {
     return shell(launchPath: whichPathForCommand, arguments: arguments)
 }
 
-// MARK: - Perform Installation
+// MARK: - Installer App
 
-installTemplate(template: Constants.ArchtFiles.mvvmTemplate, from: Constants.FilesDirectory.architectures)
-installTemplate(template: Constants.UtilFiles.baseServiceTemplate, from: Constants.FilesDirectory.utils)
-printToConsole(Constants.Messages.exitMessage)
+// Declare the Application context
+let app = NSApplication.shared
+app.setActivationPolicy(.regular)
+
+// MARK: - Handlers
+
+class DelegatesHandler: NSObject, NSWindowDelegate {
+    func windowShouldClose(_ sender: NSWindow) -> Bool {
+        sender.close()
+        app.terminate(self)
+        return true
+    }
+}
+
+// MARK: - AppDelegate
+
+class AppDelegate: NSObject, NSApplicationDelegate {
+    
+    // MARK: - Properties
+    
+    let handler = DelegatesHandler()
+    
+    // MARK: - IBOutlets
+    
+    let window = NSWindow(contentRect: NSRect(x:0, y:0, width:400, height:400),
+                          styleMask: [.titled, .closable, .miniaturizable],
+                          backing: .buffered,
+                          defer: false)
+    
+    let imageView = NSImageView()
+    let title = NSTextField()
+    let subtitle = NSTextField()
+    let mvvmButton = NSButton()
+    let baseServiceButton = NSButton()
+    let installButton = NSButton()
+    let layout = NSLayoutGuide()
+
+    // MARK: - NSApplicationDelegate
+    
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        setupWindow()
+        setupView()
+        setupLayout()
+    }
+    
+    // MARK: - Setups
+    
+    private func setupWindow() {
+        window.title = "GGTools Templates Installer"
+        window.center()
+        window.makeKeyAndOrderFront(nil)  // Magic needed to display the window
+        window.delegate = handler
+    }
+    
+    private func setupView() {
+
+        // Create logo
+        let imagePath = "./GG.png"
+        let completeUrl = URL(fileURLWithPath: imagePath)
+        let img = NSImage(byReferencing: completeUrl)
+
+        imageView.image = img
+        
+        window.contentView!.addSubview(imageView)
+        
+        // Create subtitle
+        subtitle.stringValue = "Choose the templates you want to install:"
+        subtitle.backgroundColor = .clear
+        subtitle.isBezeled = false
+        subtitle.isEditable = false
+        subtitle.font = NSFont.systemFont(ofSize: 18)
+        subtitle.alignment = .center
+        
+        window.contentView!.addSubview(subtitle)
+
+        // Create buttons
+        mvvmButton.title = "MVVM Template"
+        mvvmButton.setButtonType(.switch)
+
+        baseServiceButton.title = "Base Service Template"
+        baseServiceButton.setButtonType(.switch)
+
+        installButton.title = "Install"
+        installButton.setButtonType(.toggle)
+        installButton.target = self
+        installButton.action = #selector(installAction)
+        installButton.font = NSFont.systemFont(ofSize: 14)
+        installButton.bezelStyle = .rounded
+        
+        window.contentView!.addSubview(mvvmButton)
+        window.contentView!.addSubview(baseServiceButton)
+        window.contentView!.addSubview(installButton)
+    }
+    
+    private func setupLayout() {
+        imageView.translatesAutoresizingMaskIntoConstraints = false
+        title.translatesAutoresizingMaskIntoConstraints = false
+        subtitle.translatesAutoresizingMaskIntoConstraints = false
+        mvvmButton.translatesAutoresizingMaskIntoConstraints = false
+        baseServiceButton.translatesAutoresizingMaskIntoConstraints = false
+        installButton.translatesAutoresizingMaskIntoConstraints = false
+        
+        NSLayoutConstraint.activate([
+            imageView.topAnchor.constraint(equalTo: window.contentView!.topAnchor, constant: 40),
+            imageView.centerXAnchor.constraint(equalTo: window.contentView!.centerXAnchor, constant: 0),
+            imageView.widthAnchor.constraint(equalToConstant: 124),
+            imageView.heightAnchor.constraint(equalToConstant: 74),
+            
+            subtitle.topAnchor.constraint(equalTo: imageView.bottomAnchor, constant: 20),
+            subtitle.leadingAnchor.constraint(equalTo: window.contentView!.leadingAnchor, constant: 0),
+            subtitle.trailingAnchor.constraint(equalTo: window.contentView!.trailingAnchor, constant: 0),
+            
+            mvvmButton.topAnchor.constraint(equalTo: subtitle.bottomAnchor, constant: 20),
+            mvvmButton.centerXAnchor.constraint(equalTo: window.contentView!.centerXAnchor, constant: -20),
+            mvvmButton.heightAnchor.constraint(equalToConstant: 40),
+            
+            baseServiceButton.topAnchor.constraint(equalTo: mvvmButton.bottomAnchor, constant: 10),
+            baseServiceButton.leadingAnchor.constraint(equalTo: mvvmButton.leadingAnchor, constant: 0),
+            baseServiceButton.heightAnchor.constraint(equalToConstant: 40),
+            
+            installButton.topAnchor.constraint(equalTo: baseServiceButton.bottomAnchor, constant: 40),
+            installButton.centerXAnchor.constraint(equalTo: window.contentView!.centerXAnchor, constant: 0),
+            installButton.widthAnchor.constraint(equalToConstant: 100)
+        ])
+    }
+    
+    // MARK: - Actions
+    
+    @objc func installAction () {
+        if mvvmButton.stringValue == "1" {
+            installTemplate(template: Constants.ArchtFiles.mvvmTemplate, from: Constants.FilesDirectory.architectures)
+        }
+
+        if baseServiceButton.stringValue == "1" {
+            installTemplate(template: Constants.UtilFiles.baseServiceTemplate, from: Constants.FilesDirectory.utils)
+        }
+        
+        printToConsole(Constants.Messages.exitMessage)
+    }
+}
+
+// Run app
+let delegate = AppDelegate()
+app.delegate = delegate
+app.run()
+
