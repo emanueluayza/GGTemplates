@@ -45,100 +45,11 @@ struct Constants {
     }
 }
 
-// MARK: - Prints
-
-func printToConsole(_ message:Any){
-    Constants.Blocks.printSeparator()
-    print("\(message)")
-    Constants.Blocks.printSeparator()
-}
-
-// MARK: - Files Management
-
-func installTemplate(template: String, from directory: String) {
-    do {
-        let fileManager = FileManager.default
-        let destinationPath = bash(command: "xcode-select", arguments: ["--print-path"]).appending(Constants.Paths.destinationPath)
-        var isDir : ObjCBool = false
-                    
-        if fileManager.fileExists(atPath: destinationPath, isDirectory:&isDir) {
-            if isDir.boolValue {
-                // Directory exists. Move forward...
-            } else {
-                // There is a file with the same name but is not a directory.
-                printToConsole(Constants.Messages.errorMessage)
-            }
-        } else {
-            // Directory doesn't exist.
-            printToConsole(Constants.Messages.creatingDirectoryMessage)
-            
-            do {
-                try FileManager.default.createDirectory(atPath: destinationPath, withIntermediateDirectories: true, attributes: nil)
-            } catch {
-                printToConsole("\(Constants.Messages.errorMessage) : \(error)")
-            }
-        }
-        
-        if !fileManager.fileExists(atPath: "\(destinationPath)/\(template)"){
-            printToConsole(String(format: Constants.Messages.installingMessage, template) + destinationPath)
-            try fileManager.copyItem(atPath: directory + template, toPath: "\(destinationPath)/\(template)")
-            printToConsole(String(format: Constants.Messages.successMessage, template))
-        } else {
-            printToConsole(String(format: Constants.Messages.replaceMessage, template))
-            var input = ""
-            repeat {
-                guard let textFormCommandLine = readLine(strippingNewline: true) else {
-                    continue
-                }
-                input = textFormCommandLine.lowercased()
-                
-            } while(input != Constants.CommandLineValues.yes && input != Constants.CommandLineValues.y && input != Constants.CommandLineValues.no && input != Constants.CommandLineValues.n)
-
-            if input == Constants.CommandLineValues.yes || input == Constants.CommandLineValues.y {
-                try replaceItemAt(URL(fileURLWithPath: "\(destinationPath)/\(template)"), withItemAt: URL(fileURLWithPath: directory + template))
-                printToConsole(String(format: Constants.Messages.successfullReplaceMessage, template))
-            } else {
-                printToConsole(String(format: Constants.Messages.skipReplacementMessage, template))
-            }
-        }
-    }
-
-    catch let error as NSError {
-        printToConsole("\(Constants.Messages.errorMessage) : \(error.localizedFailureReason!)")
-    }
-}
-
-func replaceItemAt(_ url: URL, withItemAt itemAtUrl: URL) throws {
-    let fileManager = FileManager.default
-    try fileManager.removeItem(at: url)
-    try fileManager.copyItem(atPath: itemAtUrl.path, toPath: url.path)
-}
-
-// MARK: - Shell and Bash Management
-
-func shell(launchPath: String, arguments: [String]) -> String {
-    let task = Process()
-    task.launchPath = launchPath
-    task.arguments = arguments
-
-    let pipe = Pipe()
-    task.standardOutput = pipe
-    task.launch()
-
-    let data = pipe.fileHandleForReading.readDataToEndOfFile()
-    let output = String(data: data, encoding: String.Encoding.utf8)!
-    if output.count > 0 {
-        //remove newline character.
-        let lastIndex = output.index(before: output.endIndex)
-        return String(output[output.startIndex ..< lastIndex])
-    }
-    return output
-}
-
-func bash(command: String, arguments: [String]) -> String {
-    let whichPathForCommand = shell(launchPath: "/bin/bash", arguments: [ "-l", "-c", "which \(command)" ])
-    return shell(launchPath: whichPathForCommand, arguments: arguments)
-}
+//func printToConsole(_ message: String){
+//    Constants.Blocks.printSeparator()
+//    print("\(message)")
+//    Constants.Blocks.printSeparator()
+//}
 
 // MARK: - Installer App
 
@@ -153,6 +64,40 @@ class DelegatesHandler: NSObject, NSWindowDelegate {
         sender.close()
         app.terminate(self)
         return true
+    }
+}
+
+// MARK: - Alerts
+
+struct Alert {
+    var message: String
+    var description: String?
+    var okTitle: String
+    var cancelTitle: String?
+    var style: NSAlert.Style
+    var okAction: (() -> Void)?
+    var cancelAction: (() -> Void)?
+    
+    func show(on window: NSWindow) {
+        let alert = NSAlert()
+        alert.alertStyle = style
+        alert.messageText = message
+        alert.informativeText = description ?? ""
+        alert.addButton(withTitle: okTitle)
+        
+        if let cancel = cancelTitle {
+            alert.addButton(withTitle: cancel)
+        }
+        
+        alert.beginSheetModal(for: window) { (response) in
+            if response == .alertFirstButtonReturn {
+                self.okAction?()
+            } else {
+                self.cancelAction?()
+            }
+        }
+        
+        alert.runModal()
     }
 }
 
@@ -272,19 +217,126 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     
     @objc func installAction () {
         if mvvmButton.stringValue == "1" {
-            installTemplate(template: Constants.ArchtFiles.mvvmTemplate, from: Constants.FilesDirectory.architectures)
+            installTemplate(template: Constants.ArchtFiles.mvvmTemplate, from: Constants.FilesDirectory.architectures, on: window)
         }
 
         if baseServiceButton.stringValue == "1" {
-            installTemplate(template: Constants.UtilFiles.baseServiceTemplate, from: Constants.FilesDirectory.utils)
+            installTemplate(template: Constants.UtilFiles.baseServiceTemplate, from: Constants.FilesDirectory.utils, on: window)
         }
         
-        printToConsole(Constants.Messages.exitMessage)
+        //printToConsole(Constants.Messages.exitMessage)
+        let alert = Alert(message: Constants.Messages.exitMessage, okTitle: "OK", style: .informational, okAction:{ [weak self] in
+            guard let strongSelf = self else { return }
+            
+            strongSelf.window.close()
+            app.terminate(self)
+        })
+        alert.show(on: window)
     }
+}
+
+// MARK: - Files Management
+
+func installTemplate(template: String, from directory: String, on window: NSWindow) {
+    do {
+        let fileManager = FileManager.default
+        let destinationPath = bash(command: "xcode-select", arguments: ["--print-path"]).appending(Constants.Paths.destinationPath)
+        var isDir : ObjCBool = false
+                    
+        if fileManager.fileExists(atPath: destinationPath, isDirectory:&isDir) {
+            if isDir.boolValue {
+                // Directory exists. Move forward...
+            } else {
+                // There is a file with the same name but is not a directory.
+                //printToConsole(Constants.Messages.errorMessage)
+                let alert = Alert(message: Constants.Messages.errorMessage, okTitle: "OK", style: .warning)
+                alert.show(on: window)
+            }
+        } else {
+            // Directory doesn't exist.
+            //printToConsole(Constants.Messages.creatingDirectoryMessage)
+            
+            
+            do {
+                try FileManager.default.createDirectory(atPath: destinationPath, withIntermediateDirectories: true, attributes: nil)
+            } catch {
+                //printToConsole("\(Constants.Messages.errorMessage) : \(error)")
+                let alert = Alert(message: Constants.Messages.errorMessage, description: "\(error)", okTitle: "Ok", style: .warning)
+                alert.show(on: window)
+            }
+        }
+        
+        if !fileManager.fileExists(atPath: "\(destinationPath)/\(template)"){
+            //printToConsole(String(format: Constants.Messages.installingMessage, template) + destinationPath)
+            try fileManager.copyItem(atPath: directory + template, toPath: "\(destinationPath)/\(template)")
+            let alert = Alert(message: Constants.Messages.successMessage, okTitle: "Ok", style: .informational)
+            alert.show(on: window)
+            //printToConsole(String(format: Constants.Messages.successMessage, template))
+        } else {
+            //printToConsole(String(format: Constants.Messages.replaceMessage, template))
+            let alert = Alert(message: Constants.Messages.replaceMessage, okTitle: "Yes", cancelTitle: "No", style: .informational, okAction: {
+                try
+                    replaceItemAt(URL(fileURLWithPath: "\(destinationPath)/\(template)"), withItemAt: URL(fileURLWithPath: directory + template))
+            } as? (() -> Void))
+            
+            alert.show(on: window)
+//            var input = ""
+//            repeat {
+//                guard let textFormCommandLine = readLine(strippingNewline: true) else {
+//                    continue
+//                }
+//                input = textFormCommandLine.lowercased()
+//
+//            } while(input != Constants.CommandLineValues.yes && input != Constants.CommandLineValues.y && input != Constants.CommandLineValues.no && input != Constants.CommandLineValues.n)
+//
+//            if input == Constants.CommandLineValues.yes || input == Constants.CommandLineValues.y {
+//                try replaceItemAt(URL(fileURLWithPath: "\(destinationPath)/\(template)"), withItemAt: URL(fileURLWithPath: directory + template))
+//                printToConsole(String(format: Constants.Messages.successfullReplaceMessage, template))
+//            } else {
+//                printToConsole(String(format: Constants.Messages.skipReplacementMessage, template))
+//            }
+        }
+    }
+    catch let error as NSError {
+        let alert = Alert(message: Constants.Messages.errorMessage, description: "\(error.localizedFailureReason!)", okTitle: "Ok", style: .warning)
+        alert.show(on: window)
+        //printToConsole("\(Constants.Messages.errorMessage) : \(error.localizedFailureReason!)")
+    }
+}
+
+func replaceItemAt(_ url: URL, withItemAt itemAtUrl: URL) throws {
+    let fileManager = FileManager.default
+    try fileManager.removeItem(at: url)
+    try fileManager.copyItem(atPath: itemAtUrl.path, toPath: url.path)
+}
+
+// MARK: - Shell and Bash Management
+
+func shell(launchPath: String, arguments: [String]) -> String {
+    let task = Process()
+    task.launchPath = launchPath
+    task.arguments = arguments
+
+    let pipe = Pipe()
+    task.standardOutput = pipe
+    task.launch()
+
+    let data = pipe.fileHandleForReading.readDataToEndOfFile()
+    let output = String(data: data, encoding: String.Encoding.utf8)!
+    if output.count > 0 {
+        //remove newline character.
+        let lastIndex = output.index(before: output.endIndex)
+        return String(output[output.startIndex ..< lastIndex])
+    }
+    return output
+}
+
+func bash(command: String, arguments: [String]) -> String {
+    let whichPathForCommand = shell(launchPath: "/bin/bash", arguments: [ "-l", "-c", "which \(command)" ])
+    return shell(launchPath: whichPathForCommand, arguments: arguments)
 }
 
 // Run app
 let delegate = AppDelegate()
 app.delegate = delegate
 app.run()
-
