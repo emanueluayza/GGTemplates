@@ -5,12 +5,23 @@ import Foundation
 struct Constants {
 
     struct CommandLineValues {
-        static let yes = "YES"
-        static let no = "NO"
+        static let yes = "yes"
+        static let no = "no"
+        static let y = "y"
+        static let n = "n"
     }
     
-    struct Files {
+    struct FilesDirectory {
+        static let architectures = "architectures/"
+        static let utils = "utils/"
+    }
+    
+    struct ArchtFiles {
         static let mvvmTemplate = "MVVM.xctemplate"
+    }
+    
+    struct UtilFiles {
+        static let baseServiceTemplate = "Base Service.xctemplate"
     }
     
     struct Paths {
@@ -18,13 +29,14 @@ struct Constants {
     }
 
     struct Messages {
-        static let installingMessage = "📑 GGT Template will be copied to: "
-        static let successMessage = "✅  GGT Template was installed succesfully 🎉."
-        static let successfullReplaceMessage = "✅  The GGT Template has been replaced for you with the new version 🎉."
-        static let errorMessage = "❌  Ooops! Something went wrong 😕"
+        static let creatingDirectoryMessage = "📁 Creating GGT Template directory... "
+        static let installingMessage = "🔧 Installing GGT Template (%@) into: "
+        static let successMessage = "✅ GGT Template (%@) was installed succesfully 🎉."
+        static let errorMessage = "❌ Ooops! Something went wrong 😕"
+        static let replaceMessage = "❗The GGT Template (%@) already exists. Do you want to replace it? (YES or NO)"
+        static let successfullReplaceMessage = "✅ The GGT Template (%@) has been replaced for you with the new version 🎉."
+        static let skipReplacementMessage = "⏭ The GGT Template (%@) replacement was skipped."
         static let exitMessage = "See you later 👋"
-        static let promptReplace = "❕ That GGT Template already exists. Do you want to replace it? (YES or NO)"
-        static let creatingDirectory = "🏗  Creating GGT Template directory... "
     }
 
     struct Blocks {
@@ -42,7 +54,7 @@ func printToConsole(_ message:Any){
 
 // MARK: - Files Management
 
-func installTemplate(){
+func installTemplate(template: String, from directory: String) {
     do {
         let fileManager = FileManager.default
         let destinationPath = bash(command: "xcode-select", arguments: ["--print-path"]).appending(Constants.Paths.destinationPath)
@@ -50,15 +62,14 @@ func installTemplate(){
                     
         if fileManager.fileExists(atPath: destinationPath, isDirectory:&isDir) {
             if isDir.boolValue {
-                // file exists and is a directory
-                printToConsole(Constants.Messages.installingMessage + destinationPath)
+                // Directory exists. Move forward...
             } else {
-                // file exists and is not a directory
+                // There is a file with the same name but is not a directory.
                 printToConsole(Constants.Messages.errorMessage)
             }
         } else {
-            // file does not exist
-            printToConsole(Constants.Messages.creatingDirectory)
+            // Directory doesn't exist.
+            printToConsole(Constants.Messages.creatingDirectoryMessage)
             
             do {
                 try FileManager.default.createDirectory(atPath: destinationPath, withIntermediateDirectories: true, attributes: nil)
@@ -67,25 +78,26 @@ func installTemplate(){
             }
         }
         
-        if !fileManager.fileExists(atPath: "\(destinationPath)/\(Constants.Files.mvvmTemplate)"){
-            print(Constants.Files.mvvmTemplate)
-            try fileManager.copyItem(atPath: Constants.Files.mvvmTemplate, toPath: "\(destinationPath)/\(Constants.Files.mvvmTemplate)")
-            printToConsole(Constants.Messages.successMessage)
+        if !fileManager.fileExists(atPath: "\(destinationPath)/\(template)"){
+            printToConsole(String(format: Constants.Messages.installingMessage, template) + destinationPath)
+            try fileManager.copyItem(atPath: directory + template, toPath: "\(destinationPath)/\(template)")
+            printToConsole(String(format: Constants.Messages.successMessage, template))
         } else {
-            print(Constants.Messages.promptReplace)
+            printToConsole(String(format: Constants.Messages.replaceMessage, template))
             var input = ""
             repeat {
                 guard let textFormCommandLine = readLine(strippingNewline: true) else {
                     continue
                 }
-                input = textFormCommandLine.uppercased()
-            } while(input != Constants.CommandLineValues.yes && input != Constants.CommandLineValues.no)
+                input = textFormCommandLine.lowercased()
+                
+            } while(input != Constants.CommandLineValues.yes && input != Constants.CommandLineValues.y && input != Constants.CommandLineValues.no && input != Constants.CommandLineValues.n)
 
-            if input == Constants.CommandLineValues.yes {
-                try replaceItemAt(URL(fileURLWithPath: "\(destinationPath)/\(Constants.Files.mvvmTemplate)"), withItemAt: URL(fileURLWithPath: Constants.Files.mvvmTemplate))
-                printToConsole(Constants.Messages.successfullReplaceMessage)
+            if input == Constants.CommandLineValues.yes || input == Constants.CommandLineValues.y {
+                try replaceItemAt(URL(fileURLWithPath: "\(destinationPath)/\(template)"), withItemAt: URL(fileURLWithPath: directory + template))
+                printToConsole(String(format: Constants.Messages.successfullReplaceMessage, template))
             } else {
-                print(Constants.Messages.exitMessage)
+                printToConsole(String(format: Constants.Messages.skipReplacementMessage, template))
             }
         }
     }
@@ -129,4 +141,6 @@ func bash(command: String, arguments: [String]) -> String {
 
 // MARK: - Perform Installation
 
-installTemplate()
+installTemplate(template: Constants.ArchtFiles.mvvmTemplate, from: Constants.FilesDirectory.architectures)
+installTemplate(template: Constants.UtilFiles.baseServiceTemplate, from: Constants.FilesDirectory.utils)
+printToConsole(Constants.Messages.exitMessage)
