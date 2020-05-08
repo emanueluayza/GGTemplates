@@ -37,6 +37,11 @@ struct Constants {
         static let replaceMessage = "The GGT Template (%@) already exists. Do you want to replace it?"
         static let successfullReplaceMessage = "The GGT Template (%@) has been replaced for you with the new version."
         static let skipReplacementMessage = "The GGT Template (%@) replacement was skipped."
+        static let permissionDeniedMessage = "You don't have permission to install templates. Please run the installer in administrator mode."
+    }
+    
+    struct ErrorCode {
+        static let permissionDeniedCode = 513
     }
 }
 
@@ -74,6 +79,12 @@ struct Alert {
         alert.informativeText = description ?? ""
         alert.addButton(withTitle: okTitle)
         
+        switch style {
+        case .warning: alert.icon = NSImage(named: NSImage.cautionName)
+        case .informational: alert.icon = NSImage(named: NSImage.infoName)
+        default: break
+        }
+
         if let cancel = cancelTitle {
             alert.addButton(withTitle: cancel)
         }
@@ -90,6 +101,13 @@ struct Alert {
         
         alert.runModal()
     }
+}
+
+// MARK: - Extensions
+
+extension Error {
+    var code: Int { return (self as NSError).code }
+    var domain: String { return (self as NSError).domain }
 }
 
 // MARK: - AppDelegate
@@ -181,10 +199,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         installButton.translatesAutoresizingMaskIntoConstraints = false
         
         NSLayoutConstraint.activate([
-            imageView.topAnchor.constraint(equalTo: window.contentView!.topAnchor, constant: 40),
+            imageView.topAnchor.constraint(equalTo: window.contentView!.topAnchor, constant: 30),
             imageView.centerXAnchor.constraint(equalTo: window.contentView!.centerXAnchor, constant: 0),
-            imageView.widthAnchor.constraint(equalToConstant: 124),
-            imageView.heightAnchor.constraint(equalToConstant: 74),
+            imageView.widthAnchor.constraint(equalToConstant: 144),
+            imageView.heightAnchor.constraint(equalToConstant: 94),
             
             subtitle.topAnchor.constraint(equalTo: imageView.bottomAnchor, constant: 20),
             subtitle.leadingAnchor.constraint(equalTo: window.contentView!.leadingAnchor, constant: 0),
@@ -207,77 +225,121 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - Actions
     
     @objc func installAction () {
-        if mvvmButton.stringValue == "1" {
-            installTemplate(template: Constants.ArchtFiles.mvvmTemplate, from: Constants.FilesDirectory.architectures, on: window)
-        }
+        var templates: [Template] = []
 
+        if mvvmButton.stringValue == "1" {
+            templates.append(Template(name: Constants.ArchtFiles.mvvmTemplate, directory: Constants.FilesDirectory.architectures))
+        }
+        
         if baseServiceButton.stringValue == "1" {
-            installTemplate(template: Constants.UtilFiles.baseServiceTemplate, from: Constants.FilesDirectory.utils, on: window)
+            templates.append(Template(name: Constants.UtilFiles.baseServiceTemplate, directory: Constants.FilesDirectory.utils))
+        }
+        
+        install(templates: templates, on: window) { [weak self] error in
+            guard let strongSelf = self else { return }
+            
+            DispatchQueue.main.async {
+                if let error = error {
+                    let alert = Alert(message: error.message, description: error.description, okTitle: "OK", style: .warning)
+                    alert.show(on: strongSelf.window)
+                } else {
+                    let alert = Alert(message: Constants.Messages.successMessage, okTitle: "OK", style: .informational)
+                    alert.show(on: strongSelf.window)
+                }
+            }
         }
     }
+}
+
+struct Template {
+    var name: String
+    var directory: String
+    
+    func path() -> String {
+        return directory + name
+    }
+}
+
+struct ErrorMessage {
+    var message: String
+    var description: String?
 }
 
 // MARK: - Files Management
 
-func installTemplate(template: String, from directory: String, on window: NSWindow) {
-    do {
-        let fileManager = FileManager.default
-        let destinationPath = bash(command: "xcode-select", arguments: ["--print-path"]).appending(Constants.Paths.destinationPath)
-        var isDir : ObjCBool = false
-                    
-        if fileManager.fileExists(atPath: destinationPath, isDirectory:&isDir) {
-            if isDir.boolValue {
-                // Directory exists. Move forward...
-            } else {
-                // There is a file with the same name but is not a directory.
-                //printToConsole(Constants.Messages.errorMessage)
-                let alert = Alert(message: Constants.Messages.errorMessage, okTitle: "OK", style: .warning)
-                alert.show(on: window)
-            }
+func install(templates: [Template], on window: NSWindow, completion:((_ error: ErrorMessage?) -> Void)?) {
+    let fileManager = FileManager.default
+    let destinationPath = bash(command: "xcode-select", arguments: ["--print-path"]).appending(Constants.Paths.destinationPath)
+    var isDir : ObjCBool = false
+                
+    if fileManager.fileExists(atPath: destinationPath, isDirectory:&isDir) {
+        if isDir.boolValue {
+            // Directory exists. Move forward...
         } else {
-            // Directory doesn't exist.
-            //printToConsole(Constants.Messages.creatingDirectoryMessage)
-            
-            do {
-                try FileManager.default.createDirectory(atPath: destinationPath, withIntermediateDirectories: true, attributes: nil)
-            } catch {
-                //printToConsole("\(Constants.Messages.errorMessage) : \(error)")
-                let alert = Alert(message: Constants.Messages.errorMessage, description: "\(error)", okTitle: "Ok", style: .warning)
-                alert.show(on: window)
-            }
+            // There is a file with the same name but is not a directory.
+            completion?(ErrorMessage(message: Constants.Messages.errorMessage, description: nil))
+            return
         }
+    } else {
+        // Directory doesn't exist.
+        //printToConsole(Constants.Messages.creatingDirectoryMessage)
         
-        if !fileManager.fileExists(atPath: "\(destinationPath)/\(template)"){
-            //printToConsole(String(format: Constants.Messages.installingMessage, template) + destinationPath)
-            try fileManager.copyItem(atPath: directory + template, toPath: "\(destinationPath)/\(template)")
-            let alert = Alert(message: Constants.Messages.successMessage, okTitle: "Ok", style: .informational)
-            alert.show(on: window)
-            //printToConsole(String(format: Constants.Messages.successMessage, template))
-        } else {
-            //printToConsole(String(format: Constants.Messages.replaceMessage, template))
-            let alert = Alert(message: String(format: Constants.Messages.replaceMessage, template), okTitle: "Replace", cancelTitle: "Cancel", style: .informational, okAction: {
-                do {
-                    try replaceItemAt(URL(fileURLWithPath: "\(destinationPath)/\(template)"), withItemAt: URL(fileURLWithPath: directory + template))
-                } catch {
-                    let alert = Alert(message: Constants.Messages.errorMessage, description: "\(error)", okTitle: "Ok", style: .warning)
-                    alert.show(on: window)
-                }
-            })
-            
-            alert.show(on: window)
+        do {
+            try FileManager.default.createDirectory(atPath: destinationPath, withIntermediateDirectories: true, attributes: nil)
+        } catch let error {
+            completion?(ErrorMessage(message: Constants.Messages.errorMessage, description: error.localizedDescription))
+            return
         }
     }
-    catch let error as NSError {
-        let alert = Alert(message: Constants.Messages.errorMessage, description: "\(error.localizedFailureReason!)", okTitle: "Ok", style: .warning)
-        alert.show(on: window)
-        //printToConsole("\(Constants.Messages.errorMessage) : \(error.localizedFailureReason!)")
+    
+    for (index,template) in templates.enumerated() {
+        if !fileManager.fileExists(atPath: "\(destinationPath)/\(template.name)") {
+            
+            do {
+                try fileManager.copyItem(atPath: template.path(), toPath: "\(destinationPath)/\(template.name)")
+            } catch let error {
+                completion?(ErrorMessage(message: Constants.Messages.errorMessage, description: error.localizedDescription))
+                return
+            }
+            //printToConsole(String(format: Constants.Messages.installingMessage, template) + destinationPath)
+            //printToConsole(String(format: Constants.Messages.successMessage, template))
+            
+            if index == templates.endIndex {
+                completion?(nil)
+            }
+        } else {
+            DispatchQueue.main.async {
+                let alert = Alert(message: String(format: Constants.Messages.replaceMessage, template.name), okTitle: "Replace", cancelTitle: "Cancel", style: .informational, okAction: {
+                    DispatchQueue.main.async {
+                        do {
+                            try replace(template: template, at: destinationPath)
+                        } catch let error {
+                            let description = error.code == Constants.ErrorCode.permissionDeniedCode ? Constants.Messages.permissionDeniedMessage : "\(error)"
+                            completion?(ErrorMessage(message: Constants.Messages.errorMessage, description: description))
+                            return
+                        }
+                        
+                        if index == templates.endIndex {
+                            completion?(nil)
+                        }
+                    }
+                })
+                            
+                alert.show(on: window)
+            }
+        }
     }
 }
 
-func replaceItemAt(_ url: URL, withItemAt itemAtUrl: URL) throws {
+func replace(template: Template, at destination: String) throws {
+    let oldPath = URL(fileURLWithPath: "\(destination)/\(template.name)")
+    let newPath = URL(fileURLWithPath: template.path())
+    
     let fileManager = FileManager.default
-    try fileManager.removeItem(at: url)
-    try fileManager.copyItem(atPath: itemAtUrl.path, toPath: url.path)
+    
+    //_ = try fileManager.replaceItemAt(oldPath, withItemAt: newPath)
+    try fileManager.removeItem(at: oldPath)
+    try fileManager.copyItem(atPath: newPath.path, toPath: oldPath.path)
 }
 
 // MARK: - Shell and Bash Management
@@ -310,4 +372,3 @@ func bash(command: String, arguments: [String]) -> String {
 let delegate = AppDelegate()
 app.delegate = delegate
 app.run()
-
