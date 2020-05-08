@@ -1,17 +1,17 @@
+//
+//  main.swift
+//  GGToolsInstaller
+//
+//  Created by Emanuel Luayza on 07/05/2020.
+//  Copyright © 2020 Emanuel Luayza. All rights reserved.
+//
+
 import Foundation
 import AppKit
 
 // MARK: - Constants
 
 struct Constants {
-
-    struct CommandLineValues {
-        static let yes = "yes"
-        static let no = "no"
-        static let y = "y"
-        static let n = "n"
-    }
-    
     struct FilesDirectory {
         static let architectures = "architectures/"
         static let utils = "utils/"
@@ -30,26 +30,15 @@ struct Constants {
     }
 
     struct Messages {
-        static let creatingDirectoryMessage = "📁 Creating GGT Template directory... "
-        static let installingMessage = "🔧 Installing GGT Template (%@) into: "
-        static let successMessage = "✅ GGT Template (%@) was installed succesfully 🎉."
-        static let errorMessage = "❌ Ooops! Something went wrong 😕"
-        static let replaceMessage = "❗The GGT Template (%@) already exists. Do you want to replace it? (YES or NO)"
-        static let successfullReplaceMessage = "✅ The GGT Template (%@) has been replaced for you with the new version 🎉."
-        static let skipReplacementMessage = "⏭ The GGT Template (%@) replacement was skipped."
-        static let exitMessage = "See you later 👋"
-    }
-
-    struct Blocks {
-        static let printSeparator = { print("====================================") }
+        static let creatingDirectoryMessage = "Creating GGT Template directory... "
+        static let installingMessage = "Installing GGT Template (%@) into: "
+        static let successMessage = "GGT Template (%@) was installed succesfully."
+        static let errorMessage = "Ooops! Something went wrong"
+        static let replaceMessage = "The GGT Template (%@) already exists. Do you want to replace it?"
+        static let successfullReplaceMessage = "The GGT Template (%@) has been replaced for you with the new version."
+        static let skipReplacementMessage = "The GGT Template (%@) replacement was skipped."
     }
 }
-
-//func printToConsole(_ message: String){
-//    Constants.Blocks.printSeparator()
-//    print("\(message)")
-//    Constants.Blocks.printSeparator()
-//}
 
 // MARK: - Installer App
 
@@ -95,6 +84,8 @@ struct Alert {
             } else {
                 self.cancelAction?()
             }
+            
+            NSApplication.shared.stopModal()
         }
         
         alert.runModal()
@@ -223,15 +214,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         if baseServiceButton.stringValue == "1" {
             installTemplate(template: Constants.UtilFiles.baseServiceTemplate, from: Constants.FilesDirectory.utils, on: window)
         }
-        
-        //printToConsole(Constants.Messages.exitMessage)
-        let alert = Alert(message: Constants.Messages.exitMessage, okTitle: "OK", style: .informational, okAction:{ [weak self] in
-            guard let strongSelf = self else { return }
-            
-            strongSelf.window.close()
-            app.terminate(self)
-        })
-        alert.show(on: window)
     }
 }
 
@@ -256,7 +238,6 @@ func installTemplate(template: String, from directory: String, on window: NSWind
             // Directory doesn't exist.
             //printToConsole(Constants.Messages.creatingDirectoryMessage)
             
-            
             do {
                 try FileManager.default.createDirectory(atPath: destinationPath, withIntermediateDirectories: true, attributes: nil)
             } catch {
@@ -274,27 +255,16 @@ func installTemplate(template: String, from directory: String, on window: NSWind
             //printToConsole(String(format: Constants.Messages.successMessage, template))
         } else {
             //printToConsole(String(format: Constants.Messages.replaceMessage, template))
-            let alert = Alert(message: Constants.Messages.replaceMessage, okTitle: "Yes", cancelTitle: "No", style: .informational, okAction: {
-                try
-                    replaceItemAt(URL(fileURLWithPath: "\(destinationPath)/\(template)"), withItemAt: URL(fileURLWithPath: directory + template))
-            } as? (() -> Void))
+            let alert = Alert(message: String(format: Constants.Messages.replaceMessage, template), okTitle: "Replace", cancelTitle: "Cancel", style: .informational, okAction: {
+                do {
+                    try replaceItemAt(URL(fileURLWithPath: "\(destinationPath)/\(template)"), withItemAt: URL(fileURLWithPath: directory + template))
+                } catch {
+                    let alert = Alert(message: Constants.Messages.errorMessage, description: "\(error)", okTitle: "Ok", style: .warning)
+                    alert.show(on: window)
+                }
+            })
             
             alert.show(on: window)
-//            var input = ""
-//            repeat {
-//                guard let textFormCommandLine = readLine(strippingNewline: true) else {
-//                    continue
-//                }
-//                input = textFormCommandLine.lowercased()
-//
-//            } while(input != Constants.CommandLineValues.yes && input != Constants.CommandLineValues.y && input != Constants.CommandLineValues.no && input != Constants.CommandLineValues.n)
-//
-//            if input == Constants.CommandLineValues.yes || input == Constants.CommandLineValues.y {
-//                try replaceItemAt(URL(fileURLWithPath: "\(destinationPath)/\(template)"), withItemAt: URL(fileURLWithPath: directory + template))
-//                printToConsole(String(format: Constants.Messages.successfullReplaceMessage, template))
-//            } else {
-//                printToConsole(String(format: Constants.Messages.skipReplacementMessage, template))
-//            }
         }
     }
     catch let error as NSError {
@@ -340,3 +310,4 @@ func bash(command: String, arguments: [String]) -> String {
 let delegate = AppDelegate()
 app.delegate = delegate
 app.run()
+
