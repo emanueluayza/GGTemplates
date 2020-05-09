@@ -32,7 +32,8 @@ struct Constants {
     struct Messages {
         static let creatingDirectoryMessage = "Creating GGT Template directory... "
         static let installingMessage = "Installing GGT Template (%@) into: "
-        static let successMessage = "GGT Template (%@) was installed succesfully."
+        static let successMessageSingular = "The GGT Template was installed succesfully."
+        static let successMessagePlural = "The GGT Templates were installed succesfully."
         static let errorMessage = "Ooops! Something went wrong"
         static let replaceMessage = "The GGT Template (%@) already exists. Do you want to replace it?"
         static let successfullReplaceMessage = "The GGT Template (%@) has been replaced for you with the new version."
@@ -51,6 +52,32 @@ struct Constants {
 let app = NSApplication.shared
 app.setActivationPolicy(.regular)
 
+// MARK: - Shell and Bash Management
+
+func shell(launchPath: String, arguments: [String]) -> String {
+    let task = Process()
+    task.launchPath = launchPath
+    task.arguments = arguments
+
+    let pipe = Pipe()
+    task.standardOutput = pipe
+    task.launch()
+
+    let data = pipe.fileHandleForReading.readDataToEndOfFile()
+    let output = String(data: data, encoding: String.Encoding.utf8)!
+    if output.count > 0 {
+        //remove newline character.
+        let lastIndex = output.index(before: output.endIndex)
+        return String(output[output.startIndex ..< lastIndex])
+    }
+    return output
+}
+
+func bash(command: String, arguments: [String]) -> String {
+    let whichPathForCommand = shell(launchPath: "/bin/bash", arguments: [ "-l", "-c", "which \(command)" ])
+    return shell(launchPath: whichPathForCommand, arguments: arguments)
+}
+
 // MARK: - Handlers
 
 class DelegatesHandler: NSObject, NSWindowDelegate {
@@ -61,7 +88,7 @@ class DelegatesHandler: NSObject, NSWindowDelegate {
     }
 }
 
-// MARK: - Alerts
+// MARK: - Helpers
 
 struct Alert {
     var message: String
@@ -102,6 +129,27 @@ struct Alert {
         alert.runModal()
     }
 }
+
+struct Template {
+    var name: String
+    var directory: String
+    
+    func path() -> String {
+        return directory + name
+    }
+}
+
+struct ErrorMessage {
+    var message: String
+    var description: String?
+}
+
+let fileManager = FileManager.default
+let destinationPath = bash(command: "xcode-select", arguments: ["--print-path"]).appending(Constants.Paths.destinationPath)
+let taskManager = DispatchGroup()
+var templates: [Template] = []
+var templatesCount: Int = 0
+var templatesInstalled = 0
 
 // MARK: - Extensions
 
@@ -153,7 +201,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func setupView() {
 
         // Create logo
-        let imagePath = "./GG.png"
+        let imagePath = "/Users/emanueluayza/Personal/Projects/MacOS/GGToolsInstaller/GGToolsInstaller/GG.png"
         let completeUrl = URL(fileURLWithPath: imagePath)
         let img = NSImage(byReferencing: completeUrl)
 
@@ -225,8 +273,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - Actions
     
     @objc func installAction () {
-        var templates: [Template] = []
-
         if mvvmButton.stringValue == "1" {
             templates.append(Template(name: Constants.ArchtFiles.mvvmTemplate, directory: Constants.FilesDirectory.architectures))
         }
@@ -235,137 +281,120 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             templates.append(Template(name: Constants.UtilFiles.baseServiceTemplate, directory: Constants.FilesDirectory.utils))
         }
         
-        install(templates: templates, on: window) { [weak self] error in
+        taskManager.enter()
+        createDirectory { [weak self] (error) in
             guard let strongSelf = self else { return }
             
-            DispatchQueue.main.async {
-                if let error = error {
-                    let alert = Alert(message: error.message, description: error.description, okTitle: "OK", style: .warning)
-                    alert.show(on: strongSelf.window)
-                } else {
-                    let alert = Alert(message: Constants.Messages.successMessage, okTitle: "OK", style: .informational)
-                    alert.show(on: strongSelf.window)
-                }
+            if let error = error {
+                let alert = Alert(message: error.message, description: error.description, okTitle: "OK", style: .warning, okAction: {
+                    taskManager.leave()
+                })
+                alert.show(on: strongSelf.window)
+            } else {
+                taskManager.leave()
+            }
+        }
+
+        templatesCount = templates.count
+        installTemplates(on: window)
+
+        taskManager.notify(queue: .main) { [weak self] in
+            guard let strongSelf = self else { return }
+            
+            if templatesInstalled == templatesCount {
+                let alert = Alert(message: templatesInstalled == 1 ? Constants.Messages.successMessageSingular : Constants.Messages.successMessagePlural, okTitle: "OK", style: .informational)
+                alert.show(on: strongSelf.window)
+                templatesInstalled = 0
             }
         }
     }
 }
 
-struct Template {
-    var name: String
-    var directory: String
+// MARK: - Files Management
+
+func installTemplates(on window: NSWindow) {
+    guard templates.count > 0 else { return }
     
-    func path() -> String {
-        return directory + name
+    let template = templates.first!
+    
+    func nextTemplate() {
+        templates.removeFirst()
+        installTemplates(on: window)
+    }
+    
+    taskManager.enter()
+    install(template: template, on: window) { (error) in
+        if let error = error {
+            let alert = Alert(message: error.message, description: error.description, okTitle: "OK", style: .warning, okAction: {
+                nextTemplate()
+                taskManager.leave()
+            })
+            alert.show(on: window)
+        } else {
+            templatesInstalled += 1
+            nextTemplate()
+            taskManager.leave()
+        }
     }
 }
 
-struct ErrorMessage {
-    var message: String
-    var description: String?
+func install(template: Template, on window: NSWindow, completion:((_ error: ErrorMessage?) -> Void)?) {
+    if !fileManager.fileExists(atPath: "\(destinationPath)/\(template.name)") {
+        do {
+            try fileManager.copyItem(atPath: template.path(), toPath: "\(destinationPath)/\(template.name)")
+        } catch let error {
+            completion?(ErrorMessage(message: Constants.Messages.errorMessage, description: error.localizedDescription))
+            return
+        }
+
+        completion?(nil)
+    } else {
+        DispatchQueue.main.async {
+            let alert = Alert(message: String(format: Constants.Messages.replaceMessage, template.name), okTitle: "Replace", cancelTitle: "Cancel", style: .informational, okAction: {
+                DispatchQueue.main.async {
+                    do {
+                        try replace(template: template, at: destinationPath)
+                    } catch let error {
+                        let description = error.code == Constants.ErrorCode.permissionDeniedCode ? Constants.Messages.permissionDeniedMessage : "\(error)"
+                        completion?(ErrorMessage(message: Constants.Messages.errorMessage, description: description))
+                        return
+                    }
+
+                    completion?(nil)
+                }
+            })
+
+            alert.show(on: window)
+        }
+    }
 }
 
-// MARK: - Files Management
-
-func install(templates: [Template], on window: NSWindow, completion:((_ error: ErrorMessage?) -> Void)?) {
-    let fileManager = FileManager.default
-    let destinationPath = bash(command: "xcode-select", arguments: ["--print-path"]).appending(Constants.Paths.destinationPath)
+func createDirectory(completion:((_ error: ErrorMessage?) -> Void)?) {
     var isDir : ObjCBool = false
                 
     if fileManager.fileExists(atPath: destinationPath, isDirectory:&isDir) {
-        if isDir.boolValue {
-            // Directory exists. Move forward...
-        } else {
-            // There is a file with the same name but is not a directory.
+        if !isDir.boolValue {
             completion?(ErrorMessage(message: Constants.Messages.errorMessage, description: nil))
             return
         }
     } else {
-        // Directory doesn't exist.
-        //printToConsole(Constants.Messages.creatingDirectoryMessage)
-        
         do {
-            try FileManager.default.createDirectory(atPath: destinationPath, withIntermediateDirectories: true, attributes: nil)
+            try fileManager.createDirectory(atPath: destinationPath, withIntermediateDirectories: true, attributes: nil)
         } catch let error {
             completion?(ErrorMessage(message: Constants.Messages.errorMessage, description: error.localizedDescription))
             return
         }
     }
     
-    for (index,template) in templates.enumerated() {
-        if !fileManager.fileExists(atPath: "\(destinationPath)/\(template.name)") {
-            
-            do {
-                try fileManager.copyItem(atPath: template.path(), toPath: "\(destinationPath)/\(template.name)")
-            } catch let error {
-                completion?(ErrorMessage(message: Constants.Messages.errorMessage, description: error.localizedDescription))
-                return
-            }
-            //printToConsole(String(format: Constants.Messages.installingMessage, template) + destinationPath)
-            //printToConsole(String(format: Constants.Messages.successMessage, template))
-            
-            if index == templates.endIndex {
-                completion?(nil)
-            }
-        } else {
-            DispatchQueue.main.async {
-                let alert = Alert(message: String(format: Constants.Messages.replaceMessage, template.name), okTitle: "Replace", cancelTitle: "Cancel", style: .informational, okAction: {
-                    DispatchQueue.main.async {
-                        do {
-                            try replace(template: template, at: destinationPath)
-                        } catch let error {
-                            let description = error.code == Constants.ErrorCode.permissionDeniedCode ? Constants.Messages.permissionDeniedMessage : "\(error)"
-                            completion?(ErrorMessage(message: Constants.Messages.errorMessage, description: description))
-                            return
-                        }
-                        
-                        if index == templates.endIndex {
-                            completion?(nil)
-                        }
-                    }
-                })
-                            
-                alert.show(on: window)
-            }
-        }
-    }
+    completion?(nil)
 }
 
 func replace(template: Template, at destination: String) throws {
     let oldPath = URL(fileURLWithPath: "\(destination)/\(template.name)")
     let newPath = URL(fileURLWithPath: template.path())
-    
-    let fileManager = FileManager.default
-    
-    //_ = try fileManager.replaceItemAt(oldPath, withItemAt: newPath)
+        
     try fileManager.removeItem(at: oldPath)
     try fileManager.copyItem(atPath: newPath.path, toPath: oldPath.path)
-}
-
-// MARK: - Shell and Bash Management
-
-func shell(launchPath: String, arguments: [String]) -> String {
-    let task = Process()
-    task.launchPath = launchPath
-    task.arguments = arguments
-
-    let pipe = Pipe()
-    task.standardOutput = pipe
-    task.launch()
-
-    let data = pipe.fileHandleForReading.readDataToEndOfFile()
-    let output = String(data: data, encoding: String.Encoding.utf8)!
-    if output.count > 0 {
-        //remove newline character.
-        let lastIndex = output.index(before: output.endIndex)
-        return String(output[output.startIndex ..< lastIndex])
-    }
-    return output
-}
-
-func bash(command: String, arguments: [String]) -> String {
-    let whichPathForCommand = shell(launchPath: "/bin/bash", arguments: [ "-l", "-c", "which \(command)" ])
-    return shell(launchPath: whichPathForCommand, arguments: arguments)
 }
 
 // Run app
