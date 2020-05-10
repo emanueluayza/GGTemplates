@@ -52,6 +52,13 @@ struct Constants {
 let app = NSApplication.shared
 app.setActivationPolicy(.regular)
 
+// Set App Icon
+
+let imagePath = "/Users/emanueluayza/Personal/Projects/MacOS/GGToolsInstaller/GGToolsInstaller/GG.png"
+let completeUrl = URL(fileURLWithPath: imagePath)
+let img = NSImage(byReferencing: completeUrl)
+app.applicationIconImage = img
+
 // MARK: - Shell and Bash Management
 
 func shell(launchPath: String, arguments: [String]) -> String {
@@ -201,10 +208,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func setupView() {
 
         // Create logo
-        let imagePath = "/Users/emanueluayza/Personal/Projects/MacOS/GGToolsInstaller/GGToolsInstaller/GG.png"
-        let completeUrl = URL(fileURLWithPath: imagePath)
-        let img = NSImage(byReferencing: completeUrl)
-
         imageView.image = img
         
         window.contentView!.addSubview(imageView)
