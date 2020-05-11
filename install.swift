@@ -1,6 +1,6 @@
 //
-//  main.swift
-//  GGToolsInstaller
+//  install.swift
+//  GGTemplatesInstaller
 //
 //  Created by Emanuel Luayza on 07/05/2020.
 //  Copyright © 2020 Emanuel Luayza. All rights reserved.
@@ -34,7 +34,7 @@ struct Constants {
             static let errorPath = "./Resources/error.png"
         }
         
-        static let destinationPath = "/Library/Xcode/Templates/File Templates/GGTools Templates"
+        static let destinationPath = "/Library/Xcode/Templates/File Templates/GGTemplates"
     }
 
     struct Messages {
@@ -218,7 +218,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - Setups
     
     private func setupWindow() {
-        window.title = "GGTools Templates Installer"
+        window.title = "GGTemplates Installer"
         window.center()
         window.makeKeyAndOrderFront(nil)  // Magic needed to display the window
         window.delegate = handler
