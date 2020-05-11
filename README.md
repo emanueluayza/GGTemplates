@@ -46,4 +46,3 @@ To use a template, you have to go to Xcode -> File -> New File and scrolldown un
 
 <img width="731" alt="Screen Shot 2020-05-11 at 15 09 01" src="https://user-images.githubusercontent.com/9702833/81595876-8b071d00-9399-11ea-99de-f97b142a1afa.png">
 
-![create](https://user-images.githubusercontent.com/9702833/81601547-68790200-93a1-11ea-8214-8c11bbb282b0.gif)
