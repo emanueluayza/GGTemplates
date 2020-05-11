@@ -26,6 +26,14 @@ struct Constants {
     }
     
     struct Paths {
+        struct Images {
+            static let logoPath = "./Resources/logo.png"
+            static let iconPath = "./Resources/icon.png"
+            static let successPath = "./Resources/success.png"
+            static let warningPath = "./Resources/warning.png"
+            static let errorPath = "./Resources/error.png"
+        }
+        
         static let destinationPath = "/Library/Xcode/Templates/File Templates/GGTools Templates"
     }
 
@@ -53,11 +61,9 @@ let app = NSApplication.shared
 app.setActivationPolicy(.regular)
 
 // Set App Icon
-
-let imagePath = "/Users/emanueluayza/Personal/Projects/MacOS/GGToolsInstaller/GGToolsInstaller/GG.png"
-let completeUrl = URL(fileURLWithPath: imagePath)
-let img = NSImage(byReferencing: completeUrl)
-app.applicationIconImage = img
+let iconUrl = URL(fileURLWithPath: Constants.Paths.Images.iconPath)
+let iconImage = NSImage(byReferencing: iconUrl)
+app.applicationIconImage = iconImage
 
 // MARK: - Shell and Bash Management
 
@@ -97,28 +103,41 @@ class DelegatesHandler: NSObject, NSWindowDelegate {
 
 // MARK: - Helpers
 
+enum AlertType {
+    case success
+    case warning
+    case error
+    
+    func path() -> String {
+        switch self {
+        case .success: return Constants.Paths.Images.successPath
+        case .warning: return Constants.Paths.Images.warningPath
+        case .error: return Constants.Paths.Images.errorPath
+        }
+    }
+}
+
 struct Alert {
     var message: String
     var description: String?
     var okTitle: String
     var cancelTitle: String?
-    var style: NSAlert.Style
+    var type: AlertType
     var okAction: (() -> Void)?
     var cancelAction: (() -> Void)?
     
     func show(on window: NSWindow) {
         let alert = NSAlert()
-        alert.alertStyle = style
+        //alert.alertStyle = style
         alert.messageText = message
         alert.informativeText = description ?? ""
         alert.addButton(withTitle: okTitle)
-        
-        switch style {
-        case .warning: alert.icon = NSImage(named: NSImage.cautionName)
-        case .informational: alert.icon = NSImage(named: NSImage.infoName)
-        default: break
-        }
 
+        let imageUrl = URL(fileURLWithPath: type.path())
+        let image = NSImage(byReferencing: imageUrl)
+        
+        alert.icon = image
+        
         if let cancel = cancelTitle {
             alert.addButton(withTitle: cancel)
         }
@@ -208,7 +227,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func setupView() {
 
         // Create logo
-        imageView.image = img
+        let logoUrl = URL(fileURLWithPath: Constants.Paths.Images.logoPath)
+        let logoImage = NSImage(byReferencing: logoUrl)
+        imageView.image = logoImage
         
         window.contentView!.addSubview(imageView)
         
@@ -289,7 +310,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             guard let strongSelf = self else { return }
             
             if let error = error {
-                let alert = Alert(message: error.message, description: error.description, okTitle: "OK", style: .warning, okAction: {
+                let alert = Alert(message: error.message, description: error.description, okTitle: "OK", type: .error, okAction: {
                     taskManager.leave()
                 })
                 alert.show(on: strongSelf.window)
@@ -305,7 +326,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             guard let strongSelf = self else { return }
             
             if templatesInstalled == templatesCount {
-                let alert = Alert(message: templatesInstalled == 1 ? Constants.Messages.successMessageSingular : Constants.Messages.successMessagePlural, okTitle: "OK", style: .informational)
+                let alert = Alert(message: templatesInstalled == 1 ? Constants.Messages.successMessageSingular : Constants.Messages.successMessagePlural, okTitle: "OK", type: .success)
                 alert.show(on: strongSelf.window)
                 templatesInstalled = 0
             }
@@ -328,7 +349,7 @@ func installTemplates(on window: NSWindow) {
     taskManager.enter()
     install(template: template, on: window) { (error) in
         if let error = error {
-            let alert = Alert(message: error.message, description: error.description, okTitle: "OK", style: .warning, okAction: {
+            let alert = Alert(message: error.message, description: error.description, okTitle: "OK", type: .error, okAction: {
                 nextTemplate()
                 taskManager.leave()
             })
@@ -353,7 +374,7 @@ func install(template: Template, on window: NSWindow, completion:((_ error: Erro
         completion?(nil)
     } else {
         DispatchQueue.main.async {
-            let alert = Alert(message: String(format: Constants.Messages.replaceMessage, template.name), okTitle: "Replace", cancelTitle: "Cancel", style: .informational, okAction: {
+            let alert = Alert(message: String(format: Constants.Messages.replaceMessage, template.name), okTitle: "Replace", cancelTitle: "Cancel", type: .warning, okAction: {
                 DispatchQueue.main.async {
                     do {
                         try replace(template: template, at: destinationPath)
