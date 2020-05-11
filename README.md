@@ -1,4 +1,4 @@
-# GGTools Templates
+# GG Templates
 
 <img src="Resources/logo.png">
 
