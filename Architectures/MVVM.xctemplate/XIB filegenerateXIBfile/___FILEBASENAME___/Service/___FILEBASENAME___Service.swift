@@ -15,7 +15,7 @@ class ___FILEBASENAMEASIDENTIFIER___: ___FILEBASENAMEASIDENTIFIER___Protocol {
         static let update = "/posts/"
     }
     
-    // MARK: - BGHServiceProtocol
+    // MARK: - ___FILEBASENAMEASIDENTIFIER___Protocol
     
     func add___VARIABLE_productName:identifier___(model: ___VARIABLE_productName:identifier___) -> AnyPublisher<Void, Error> {
         let parameters: [String: Any] = ["title": model.title, "body": model.body, "userId": model.userId]
