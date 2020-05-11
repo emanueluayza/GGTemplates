@@ -1,1 +1,3 @@
-# GGToolsTemplates
+# GGTools Templates
+
+![](Resources/icon.png)
