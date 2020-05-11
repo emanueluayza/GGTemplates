@@ -4,7 +4,7 @@
 
 **Simplify your dev life installing Xcode templates in an easy way.**
 
-GGTools Templates provides some Xcode templates that you can use to speedup your development. You can choose between architectures such as, MVVM or MVP to create complete models, or utils like a Base Service.
+GG Templates provides some Xcode templates that you can use to speedup your development. You can choose between architectures such as, MVVM or MVP to create complete models, or utils like a Base Service.
 
 ## Features
 
@@ -42,6 +42,6 @@ sudo swift install.swift
 
 ## Usage
 
-To use a template, you have to go to Xcode -> File -> New File and scrolldown until GGTools Templates section to choose one of them:
+To use a template, you have to go to Xcode -> File -> New File and scrolldown until GG Templates section to choose one of them:
 
 <img width="730" alt="Screen Shot 2020-05-11 at 14 05 04" src="https://user-images.githubusercontent.com/9702833/81589995-8427dc80-9390-11ea-9e4a-621c7a2db881.png">
