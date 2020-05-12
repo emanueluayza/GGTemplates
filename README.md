@@ -82,6 +82,10 @@ Xib:
 
 ![mvp xib](https://user-images.githubusercontent.com/9702833/81751043-07c2f580-9485-11ea-854e-7226925d9b7e.png)
 
+## Improvements
+
+If you have some recommendations or code changes, please, make a Pull Request and I will take a look to include them in a new version.
+
 ###### THANKS TO
 
 [@christianottonello](https://www.linkedin.com/in/christianottonello/) for provide UI and UX recommendations and assets.
