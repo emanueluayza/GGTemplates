@@ -13,12 +13,16 @@ import AppKit
 
 struct Constants {
     struct FilesDirectory {
-        static let architectures = "architectures/"
+        static let mvvmBsArch = "architectures/MVVM+BS/"
+        static let mvvmArch = "architectures/MVVM/"
+        static let mvpBsArch = "architectures/MVP+BS/"
+        static let mvpArch = "architectures/MVP/"
         static let utils = "utils/"
     }
     
     struct ArchtFiles {
         static let mvvmTemplate = "MVVM.xctemplate"
+        static let mvpTemplate = "MVP.xctemplate"
     }
     
     struct UtilFiles {
@@ -128,7 +132,6 @@ struct Alert {
     
     func show(on window: NSWindow) {
         let alert = NSAlert()
-        //alert.alertStyle = style
         alert.messageText = message
         alert.informativeText = description ?? ""
         alert.addButton(withTitle: okTitle)
@@ -188,13 +191,9 @@ extension Error {
 
 class AppDelegate: NSObject, NSApplicationDelegate {
     
-    // MARK: - Properties
-    
-    let handler = DelegatesHandler()
-    
     // MARK: - IBOutlets
     
-    let window = NSWindow(contentRect: NSRect(x:0, y:0, width:400, height:400),
+    let window = NSWindow(contentRect: NSRect(x:0, y:0, width:400, height:440),
                           styleMask: [.titled, .closable, .miniaturizable],
                           backing: .buffered,
                           defer: false)
@@ -202,11 +201,21 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     let imageView = NSImageView()
     let title = NSTextField()
     let subtitle = NSTextField()
+    let baseServiceTitle = NSTextField()
     let mvvmButton = NSButton()
-    let baseServiceButton = NSButton()
+    let mvvmBSButton = NSButton()
+    let mvpButton = NSButton()
+    let mvpBSButton = NSButton()
     let installButton = NSButton()
-    let layout = NSLayoutGuide()
 
+    // MARK: - Properties
+    
+    let handler = DelegatesHandler()
+    var isMvvmSelected = false
+    var isMvpSelected = false
+    var isMvvmBSSelected = false
+    var isMvpBSSelected = false
+    
     // MARK: - NSApplicationDelegate
     
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -243,13 +252,43 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         
         window.contentView!.addSubview(subtitle)
 
+        // Create Base Service title
+        baseServiceTitle.stringValue = "Include\nBase Service"
+        baseServiceTitle.backgroundColor = .clear
+        baseServiceTitle.isBezeled = false
+        baseServiceTitle.isEditable = false
+        baseServiceTitle.font = NSFont.systemFont(ofSize: 14)
+        baseServiceTitle.alignment = .center
+        
+        window.contentView!.addSubview(baseServiceTitle)
+        
         // Create buttons
         mvvmButton.title = "MVVM Template"
         mvvmButton.setButtonType(.switch)
-
-        baseServiceButton.title = "Base Service Template"
-        baseServiceButton.setButtonType(.switch)
-
+        mvvmButton.setButtonType(.toggle)
+        mvvmButton.target = self
+        mvvmButton.action = #selector(mvvmButtonAction)
+        
+        mvvmBSButton.title = ""
+        mvvmBSButton.setButtonType(.switch)
+        mvvmBSButton.isEnabled = isMvvmBSSelected
+        mvvmBSButton.setButtonType(.toggle)
+        mvvmBSButton.target = self
+        mvvmBSButton.action = #selector(mvvmBSButtonAction)
+        
+        mvpButton.title = "MVP Template"
+        mvpButton.setButtonType(.switch)
+        mvpButton.setButtonType(.toggle)
+        mvpButton.target = self
+        mvpButton.action = #selector(mvpButtonAction)
+        
+        mvpBSButton.title = ""
+        mvpBSButton.setButtonType(.switch)
+        mvpBSButton.isEnabled = isMvpBSSelected
+        mvpBSButton.setButtonType(.toggle)
+        mvpBSButton.target = self
+        mvpBSButton.action = #selector(mvpBSButtonAction)
+        
         installButton.title = "Install"
         installButton.setButtonType(.toggle)
         installButton.target = self
@@ -258,7 +297,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         installButton.bezelStyle = .rounded
         
         window.contentView!.addSubview(mvvmButton)
-        window.contentView!.addSubview(baseServiceButton)
+        window.contentView!.addSubview(mvvmBSButton)
+        window.contentView!.addSubview(mvpButton)
+        window.contentView!.addSubview(mvpBSButton)
         window.contentView!.addSubview(installButton)
     }
     
@@ -266,8 +307,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         imageView.translatesAutoresizingMaskIntoConstraints = false
         title.translatesAutoresizingMaskIntoConstraints = false
         subtitle.translatesAutoresizingMaskIntoConstraints = false
+        baseServiceTitle.translatesAutoresizingMaskIntoConstraints = false
         mvvmButton.translatesAutoresizingMaskIntoConstraints = false
-        baseServiceButton.translatesAutoresizingMaskIntoConstraints = false
+        mvvmBSButton.translatesAutoresizingMaskIntoConstraints = false
+        mvpButton.translatesAutoresizingMaskIntoConstraints = false
+        mvpBSButton.translatesAutoresizingMaskIntoConstraints = false
         installButton.translatesAutoresizingMaskIntoConstraints = false
         
         NSLayoutConstraint.activate([
@@ -280,15 +324,27 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             subtitle.leadingAnchor.constraint(equalTo: window.contentView!.leadingAnchor, constant: 0),
             subtitle.trailingAnchor.constraint(equalTo: window.contentView!.trailingAnchor, constant: 0),
             
-            mvvmButton.topAnchor.constraint(equalTo: subtitle.bottomAnchor, constant: 20),
-            mvvmButton.centerXAnchor.constraint(equalTo: window.contentView!.centerXAnchor, constant: -20),
+            baseServiceTitle.topAnchor.constraint(equalTo: subtitle.bottomAnchor, constant: 20),
+            baseServiceTitle.leadingAnchor.constraint(equalTo: window.contentView!.leadingAnchor, constant: 0),
+            baseServiceTitle.trailingAnchor.constraint(equalTo: window.contentView!.trailingAnchor, constant: 0),
+            
+            mvvmButton.topAnchor.constraint(equalTo: baseServiceTitle.bottomAnchor, constant: 20),
+            mvvmButton.leadingAnchor.constraint(equalTo: window.contentView!.leadingAnchor, constant: 40),
             mvvmButton.heightAnchor.constraint(equalToConstant: 40),
             
-            baseServiceButton.topAnchor.constraint(equalTo: mvvmButton.bottomAnchor, constant: 10),
-            baseServiceButton.leadingAnchor.constraint(equalTo: mvvmButton.leadingAnchor, constant: 0),
-            baseServiceButton.heightAnchor.constraint(equalToConstant: 40),
+            mvvmBSButton.centerYAnchor.constraint(equalTo: mvvmButton.centerYAnchor, constant: 0),
+            mvvmBSButton.heightAnchor.constraint(equalToConstant: 40),
+            mvvmBSButton.centerXAnchor.constraint(equalTo: window.contentView!.centerXAnchor, constant: 0),
             
-            installButton.topAnchor.constraint(equalTo: baseServiceButton.bottomAnchor, constant: 40),
+            mvpButton.topAnchor.constraint(equalTo: mvvmButton.bottomAnchor, constant: 20),
+            mvpButton.leadingAnchor.constraint(equalTo: window.contentView!.leadingAnchor, constant: 40),
+            mvpButton.heightAnchor.constraint(equalToConstant: 40),
+            
+            mvpBSButton.centerYAnchor.constraint(equalTo: mvpButton.centerYAnchor, constant: 0),
+            mvpBSButton.heightAnchor.constraint(equalToConstant: 40),
+            mvpBSButton.centerXAnchor.constraint(equalTo: window.contentView!.centerXAnchor, constant: 0),
+
+            installButton.topAnchor.constraint(equalTo: mvpBSButton.bottomAnchor, constant: 30),
             installButton.centerXAnchor.constraint(equalTo: window.contentView!.centerXAnchor, constant: 0),
             installButton.widthAnchor.constraint(equalToConstant: 100)
         ])
@@ -296,12 +352,36 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     
     // MARK: - Actions
     
+    @objc func mvvmButtonAction() {
+        isMvvmSelected = mvvmButton.stringValue == "1"
+        mvvmBSButton.isEnabled = isMvvmSelected
+    }
+    
+    @objc func mvpButtonAction() {
+        isMvpSelected = mvpButton.stringValue == "1"
+        mvpBSButton.isEnabled = isMvpSelected
+    }
+    
+    @objc func mvvmBSButtonAction() {
+        isMvvmBSSelected = mvvmBSButton.stringValue == "1"
+        mvvmBSButton.isEnabled = isMvvmBSSelected
+    }
+    
+    @objc func mvpBSButtonAction() {
+        isMvpBSSelected = mvpBSButton.stringValue == "1"
+        mvpBSButton.isEnabled = isMvpBSSelected
+    }
+    
     @objc func installAction () {
-        if mvvmButton.stringValue == "1" {
-            templates.append(Template(name: Constants.ArchtFiles.mvvmTemplate, directory: Constants.FilesDirectory.architectures))
+        if isMvvmSelected {
+            templates.append(Template(name: Constants.ArchtFiles.mvvmTemplate, directory: isMvvmBSSelected ? Constants.FilesDirectory.mvvmBsArch : Constants.FilesDirectory.mvvmArch))
         }
         
-        if baseServiceButton.stringValue == "1" {
+        if isMvpSelected {
+            templates.append(Template(name: Constants.ArchtFiles.mvpTemplate, directory: isMvpBSSelected ? Constants.FilesDirectory.mvpBsArch : Constants.FilesDirectory.mvpArch))
+        }
+        
+        if isMvvmBSSelected || isMvpBSSelected {
             templates.append(Template(name: Constants.UtilFiles.baseServiceTemplate, directory: Constants.FilesDirectory.utils))
         }
         
