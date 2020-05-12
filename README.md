@@ -15,7 +15,7 @@ Architectures:
 
 Utils:
 
-- Base Service Template
+- Base Service Template (Based on Combine Framework)
 
 ###### Comming soon: VIPER and more Utils!
 
@@ -46,6 +46,10 @@ sudo swift installer.swift
 To use a template, you have to go to Xcode -> File -> New File and scrolldown until GGTemplates section to choose one of them:
 
 ![Screen Shot 2020-05-12 at 18 51 43](https://user-images.githubusercontent.com/9702833/81749303-c41abc80-9481-11ea-95e9-97564a8ca475.png)
+
+If you've included the Base Service as part of the template, you must create the class to use the code generated without issues:
+
+![Screen Shot 2020-05-12 at 20 01 38](https://user-images.githubusercontent.com/9702833/81754061-99356600-948b-11ea-8de0-3e30926f16eb.png)
 
 ## Examples MVVM
 
