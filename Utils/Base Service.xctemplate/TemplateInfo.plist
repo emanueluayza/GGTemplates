@@ -9,7 +9,7 @@
 	<key>Summary</key>
 	<string>An empty Swift file</string>
 	<key>SortOrder</key>
-	<string>2</string>
+	<string>3</string>
 	<key>AllowedTypes</key>
 	<array>
 		<string>public.swift-source</string>
