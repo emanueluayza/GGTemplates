@@ -9,30 +9,41 @@ class ___FILEBASENAMEASIDENTIFIER___ {
     
     private let service: ___VARIABLE_productName:identifier___ServiceProtocol
     private var subscriber: AnyCancellable?
-    
     private var models: [___VARIABLE_productName:identifier___] {
-        didSet { modelsCount = models.count }
+        didSet {
+            modelsCount = models.count
+            selectedModel = models.first
+        }
     }
     
     // MARK: - Public Properties
     
     var modelsCount: Int
+    var selectedModel: ___VARIABLE_productName:identifier___?
     var didStartRequest: (() -> ())?
     var didEndRequest: ((_ error: Error?) -> ())?
     
     // MARK: - Inits
     
-    init(with serviceProtocol: ___VARIABLE_productName:identifier___ServiceProtocol = ___VARIABLE_productName:identifier___Service()) {
+    init(with model: ___VARIABLE_productName:identifier___? = nil, with serviceProtocol: ___VARIABLE_productName:identifier___ServiceProtocol = ___VARIABLE_productName:identifier___Service()) {
         service = serviceProtocol
         modelsCount = 0
-        models = [___VARIABLE_productName:identifier___]()
+        models = model != nil ? [model!] : [___VARIABLE_productName:identifier___]()
+    }
+    
+    // MARK: - Choose model
+    
+    func selectModel(at index: Int) {
+        selectedModel = models[index]
     }
 }
 
-// MARK - ___VARIABLE_productName:identifier___ServiceProtocol
+// MARK: - ___VARIABLE_productName:identifier___ServiceProtocol
 
 extension ___FILEBASENAMEASIDENTIFIER___ {
-    func add___VARIABLE_productName:identifier___(model: ___VARIABLE_productName:identifier___) {
+    func add___VARIABLE_productName:identifier___() {
+        guard let model = selectedModel else { return }
+    
         didStartRequest?()
                 
         subscriber = service.add___VARIABLE_productName:identifier___(model: model).sink(receiveCompletion: { [weak self] (completion) in
@@ -48,7 +59,9 @@ extension ___FILEBASENAMEASIDENTIFIER___ {
         }, receiveValue: {})
     }
     
-    func delete___VARIABLE_productName:identifier___(model: ___VARIABLE_productName:identifier___) {
+    func delete___VARIABLE_productName:identifier___() {
+        guard let model = selectedModel else { return }
+    
         didStartRequest?()
         
         subscriber = service.delete___VARIABLE_productName:identifier___(model: model).sink(receiveCompletion: { [weak self] (completion) in
@@ -83,7 +96,9 @@ extension ___FILEBASENAMEASIDENTIFIER___ {
         }
     }
     
-    func update___VARIABLE_productName:identifier___(model: ___VARIABLE_productName:identifier___) {
+    func update___VARIABLE_productName:identifier___() {
+        guard let model = selectedModel else { return }
+    
         didStartRequest?()
                 
         subscriber = service.update___VARIABLE_productName:identifier___(model: model).sink(receiveCompletion: { [weak self] (completion) in
