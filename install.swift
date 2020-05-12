@@ -190,7 +190,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     
     // MARK: - IBOutlets
     
-    let window = NSWindow(contentRect: NSRect(x:0, y:0, width:400, height:400),
+    let window = NSWindow(contentRect: NSRect(x:0, y:0, width:400, height:440),
                           styleMask: [.titled, .closable, .miniaturizable],
                           backing: .buffered,
                           defer: false)
@@ -250,7 +250,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         window.contentView!.addSubview(subtitle)
 
         // Create Base Service title
-        baseServiceTitle.stringValue = "Base Service"
+        baseServiceTitle.stringValue = "Include\nBase Service"
         baseServiceTitle.backgroundColor = .clear
         baseServiceTitle.isBezeled = false
         baseServiceTitle.isEditable = false
@@ -378,10 +378,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 templates.append(Template(name: Constants.ArchtFiles.mvvmTemplate, directory: Constants.FilesDirectory.mvvmArch))
             }
         }
-        
-//        if baseServiceButton.stringValue == "1" {
-//            templates.append(Template(name: Constants.UtilFiles.baseServiceTemplate, directory: Constants.FilesDirectory.utils))
-//        }
         
         taskManager.enter()
         createDirectory { [weak self] (error) in

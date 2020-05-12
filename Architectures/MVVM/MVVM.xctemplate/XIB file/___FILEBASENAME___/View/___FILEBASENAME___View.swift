@@ -18,11 +18,6 @@ class ___FILEBASENAMEASIDENTIFIER___: UIViewController {
         
         setUpView()
         setUpViewModel()
-
-        //viewModel.get___VARIABLE_productName:identifier___()
-        //viewModel.add___VARIABLE_productName:identifier___(model: model)
-        //viewModel.delete___VARIABLE_productName:identifier___(model: model)
-        //viewModel.update___VARIABLE_productName:identifier___(model: model)
     }
     
     // MARK: - Setups
@@ -37,6 +32,11 @@ class ___FILEBASENAMEASIDENTIFIER___: UIViewController {
             guard let strongSelf = self else { return }
             strongSelf.indicator?.stopAnimating()
         }
+        
+        //viewModel.get___VARIABLE_productName:identifier___()
+        //viewModel.add___VARIABLE_productName:identifier___(model: model)
+        //viewModel.delete___VARIABLE_productName:identifier___(model: model)
+        //viewModel.update___VARIABLE_productName:identifier___(model: model)
     }
     
     func setUpView() {
