@@ -2,9 +2,12 @@
 
 <img src="Resources/logo.png">
 
+[![Platform](https://img.shields.io/badge/platform-ios-lightgrey.svg)](https://github.com/emanueluayza/GGTemplates)
+[![License](https://img.shields.io/badge/license-MIT-343434.svg)](https://github.com/emanueluayza/GGTemplates/blob/master/LICENSE)
+
 **Simplify your dev life installing Xcode templates in an easy way.**
 
-GG Templates provides some Xcode templates that you can use to speedup your development. You can choose between architectures such as, MVVM or MVP to create complete models, or utils like a Base Service.
+GG Templates provides some Xcode templates with Swift code that you can use to speedup your development. You can choose between architectures such as, MVVM or MVP to create complete models, or utils like a Base Service.
 
 ## Features
 
