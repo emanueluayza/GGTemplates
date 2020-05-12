@@ -54,6 +54,18 @@ If you've included the Base Service as part of the template, you must create the
 
 ![Screen Shot 2020-05-12 at 20 01 38](https://user-images.githubusercontent.com/9702833/81754061-99356600-948b-11ea-8de0-3e30926f16eb.png)
 
+## IMPORTANT NOTE 
+
+When a GGTemplate is created, you'll see just folders and not an Xcode group, so all the files inside the module are not members of the app target. 
+
+![Screen Shot 2020-05-12 at 20 20 53](https://user-images.githubusercontent.com/9702833/81755340-e535da00-948e-11ea-9c07-08ed585972a5.png)
+
+Sadly, after some research, it seems that it is not currently possible to create a new group when you use a new file template, only when creating a template for a new project. A quick solution is to delete the folder reference and drag it again into the project.
+
+![Screen Shot 2020-05-12 at 20 21 07](https://user-images.githubusercontent.com/9702833/81755341-e6670700-948e-11ea-92cf-479359b997e1.png)
+
+![Screen Shot 2020-05-12 at 20 21 19](https://user-images.githubusercontent.com/9702833/81755347-e830ca80-948e-11ea-8b26-9576c0a7a1a8.png)
+
 ## Examples MVVM
 
 Code: 
