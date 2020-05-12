@@ -40,7 +40,7 @@ class ___FILEBASENAMEASIDENTIFIER___: ___FILEBASENAMEASIDENTIFIER___Protocol {
         return BaseService.run(request, JSONDecoder())
     }
     
-    func get___VARIABLE_productName:identifier___() -> AnyPublisher<[___VARIABLE_productName:identifier___], Error> {
+    func get___VARIABLE_productName:identifier___s() -> AnyPublisher<[___VARIABLE_productName:identifier___], Error> {
         guard let url = URL(string: ___VARIABLE_productName:identifier___Api.base+___VARIABLE_productName:identifier___Api.get) else {
             let error = URLError(.badURL)
             return Fail(error: error).eraseToAnyPublisher()

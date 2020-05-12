@@ -14,7 +14,7 @@ class ___FILEBASENAMEASIDENTIFIER___: ___FILEBASENAMEASIDENTIFIER___Protocol {
 
     }
     
-    func get___VARIABLE_productName:identifier___() {
+    func get___VARIABLE_productName:identifier___s() {
 
     }
     

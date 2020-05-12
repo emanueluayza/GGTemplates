@@ -15,11 +15,14 @@ struct Constants {
     struct FilesDirectory {
         static let mvvmBsArch = "architectures/MVVM+BS/"
         static let mvvmArch = "architectures/MVVM/"
+        static let mvpBsArch = "architectures/MVP+BS/"
+        static let mvpArch = "architectures/MVP/"
         static let utils = "utils/"
     }
     
     struct ArchtFiles {
         static let mvvmTemplate = "MVVM.xctemplate"
+        static let mvpTemplate = "MVP.xctemplate"
     }
     
     struct UtilFiles {
@@ -371,12 +374,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     
     @objc func installAction () {
         if isMvvmSelected {
-            if isMvvmBSSelected {
-                templates.append(Template(name: Constants.ArchtFiles.mvvmTemplate, directory: Constants.FilesDirectory.mvvmBsArch))
-                templates.append(Template(name: Constants.UtilFiles.baseServiceTemplate, directory: Constants.FilesDirectory.utils))
-            } else {
-                templates.append(Template(name: Constants.ArchtFiles.mvvmTemplate, directory: Constants.FilesDirectory.mvvmArch))
-            }
+            templates.append(Template(name: Constants.ArchtFiles.mvvmTemplate, directory: isMvvmBSSelected ? Constants.FilesDirectory.mvvmBsArch : Constants.FilesDirectory.mvvmArch))
+        }
+        
+        if isMvpSelected {
+            templates.append(Template(name: Constants.ArchtFiles.mvpTemplate, directory: isMvpBSSelected ? Constants.FilesDirectory.mvpBsArch : Constants.FilesDirectory.mvpArch))
+        }
+        
+        if isMvvmBSSelected || isMvpBSSelected {
+            templates.append(Template(name: Constants.UtilFiles.baseServiceTemplate, directory: Constants.FilesDirectory.utils))
         }
         
         taskManager.enter()

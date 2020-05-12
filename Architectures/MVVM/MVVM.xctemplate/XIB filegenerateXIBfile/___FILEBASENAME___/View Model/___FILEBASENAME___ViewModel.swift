@@ -55,7 +55,7 @@ extension ___FILEBASENAMEASIDENTIFIER___ {
         //didEndRequest?(nil)
     }
     
-    func get___VARIABLE_productName:identifier___() {
+    func get___VARIABLE_productName:identifier___s() {
         //didStartRequest?()
         // Request here
         //didEndRequest?(nil)

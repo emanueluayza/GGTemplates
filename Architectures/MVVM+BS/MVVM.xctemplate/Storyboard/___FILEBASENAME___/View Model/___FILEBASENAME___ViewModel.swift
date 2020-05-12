@@ -77,10 +77,10 @@ extension ___FILEBASENAMEASIDENTIFIER___ {
         }, receiveValue: {})
     }
     
-    func get___VARIABLE_productName:identifier___() {
+    func get___VARIABLE_productName:identifier___s() {
         didStartRequest?()
         
-        subscriber = service.get___VARIABLE_productName:identifier___().sink(receiveCompletion: { [weak self] (completion) in
+        subscriber = service.get___VARIABLE_productName:identifier___s().sink(receiveCompletion: { [weak self] (completion) in
             guard let strongSelf = self else { return }
             
             switch completion {
