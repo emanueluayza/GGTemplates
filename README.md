@@ -56,7 +56,7 @@ If you've included the Base Service as part of the template, you must create the
 
 ## IMPORTANT NOTE 
 
-When a GGTemplate is created, you'll see just folders and not an Xcode group, so all the files inside the module are not members of the app target. 
+When a GGTemplate is created, you'll see just folders and not Xcode groups, so all the files inside the modules are not members of the app target. 
 
 ![Screen Shot 2020-05-12 at 20 20 53](https://user-images.githubusercontent.com/9702833/81755340-e535da00-948e-11ea-9c07-08ed585972a5.png)
 
