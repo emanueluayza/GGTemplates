@@ -113,4 +113,8 @@ extension ___FILEBASENAMEASIDENTIFIER___ {
             }
         }, receiveValue: {})
     }
+    
+    func itemByIndex(index: Int) -> ___VARIABLE_productName:identifier___ {
+        return models[index]
+    }
 }

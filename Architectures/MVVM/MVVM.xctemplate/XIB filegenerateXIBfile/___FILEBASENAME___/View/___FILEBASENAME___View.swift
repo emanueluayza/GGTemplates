@@ -33,7 +33,7 @@ class ___FILEBASENAMEASIDENTIFIER___: UIViewController {
             strongSelf.indicator?.stopAnimating()
         }
         
-        viewModel.get___VARIABLE_productName:identifier___()
+        viewModel.get___VARIABLE_productName:identifier___s()
     }
     
     func setUpView() {

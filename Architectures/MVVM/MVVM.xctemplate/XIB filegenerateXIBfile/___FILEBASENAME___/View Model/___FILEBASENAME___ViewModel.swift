@@ -68,4 +68,8 @@ extension ___FILEBASENAMEASIDENTIFIER___ {
         // Request here
         //didEndRequest?(nil)
     }
+    
+    func itemByIndex(index: Int) -> ___VARIABLE_productName:identifier___ {
+        return models[index]
+    }
 }
