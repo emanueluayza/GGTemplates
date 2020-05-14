@@ -14,6 +14,8 @@ protocol ___FILEBASENAMEASIDENTIFIER___Protocol {
     func add___VARIABLE_productName:identifier___(model: ___VARIABLE_productName:identifier___)
     func delete___VARIABLE_productName:identifier___(model: ___VARIABLE_productName:identifier___)
     func update___VARIABLE_productName:identifier___(model: ___VARIABLE_productName:identifier___)
+    func numberOfRows() -> Int
+    func itemByIndex(index: Int) -> ___VARIABLE_productName:identifier___
 }
 
 // MARK: - Class
@@ -68,5 +70,13 @@ extension ___FILEBASENAMEASIDENTIFIER___: ___FILEBASENAMEASIDENTIFIER___Protocol
         //view?.didStartRequest()
         // Request here
         //view?.didEndRequest(nil)
+    }
+    
+    func numberOfRows() -> Int {
+        return models.count
+    }
+    
+    func itemByIndex(index: Int) -> ___VARIABLE_productName:identifier___ {
+        return models[index]
     }
 }

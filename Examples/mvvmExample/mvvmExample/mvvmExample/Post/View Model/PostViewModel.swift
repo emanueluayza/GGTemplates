@@ -1,15 +1,21 @@
-//___FILEHEADER___
+//
+//  PostViewModel.swift
+//  mvvmExample
+//
+//  Created by Emanuel Luayza on 14/05/2020.
+//  Copyright © 2020 Emanuel Luayza. All rights reserved.
+//
 
 import Foundation
 import Combine
 
-class ___FILEBASENAMEASIDENTIFIER___ {
+class PostViewModel {
     
     // MARK: - Private Properties
     
-    private let service: ___VARIABLE_productName:identifier___ServiceProtocol
+    private let service: PostServiceProtocol
     private var subscriber: AnyCancellable?
-    private var models: [___VARIABLE_productName:identifier___] {
+    private var models: [Post] {
         didSet {
             modelsCount = models.count
             selectedModel = models.first
@@ -19,16 +25,16 @@ class ___FILEBASENAMEASIDENTIFIER___ {
     // MARK: - Public Properties
     
     var modelsCount: Int
-    var selectedModel: ___VARIABLE_productName:identifier___?
+    var selectedModel: Post?
     var didStartRequest: (() -> ())?
     var didEndRequest: ((_ error: Error?) -> ())?
     
     // MARK: - Inits
     
-    init(with model: ___VARIABLE_productName:identifier___? = nil, with serviceProtocol: ___VARIABLE_productName:identifier___ServiceProtocol = ___VARIABLE_productName:identifier___Service()) {
+    init(with model: Post? = nil, with serviceProtocol: PostServiceProtocol = PostService()) {
         service = serviceProtocol
         modelsCount = 0
-        models = model != nil ? [model!] : [___VARIABLE_productName:identifier___]()
+        models = model != nil ? [model!] : [Post]()
     }
     
     // MARK: - Choose model
@@ -38,15 +44,15 @@ class ___FILEBASENAMEASIDENTIFIER___ {
     }
 }
 
-// MARK: - ___VARIABLE_productName:identifier___ServiceProtocol
+// MARK: - PostServiceProtocol
 
-extension ___FILEBASENAMEASIDENTIFIER___ {
-    func add___VARIABLE_productName:identifier___() {
+extension PostViewModel {
+    func addPost() {
         guard let model = selectedModel else { return }
     
         didStartRequest?()
                 
-        subscriber = service.add___VARIABLE_productName:identifier___(model: model).sink(receiveCompletion: { [weak self] (completion) in
+        subscriber = service.addPost(model: model).sink(receiveCompletion: { [weak self] (completion) in
             guard let strongSelf = self else { return }
             
             switch completion {
@@ -59,12 +65,12 @@ extension ___FILEBASENAMEASIDENTIFIER___ {
         }, receiveValue: {})
     }
     
-    func delete___VARIABLE_productName:identifier___() {
+    func deletePost() {
         guard let model = selectedModel else { return }
     
         didStartRequest?()
         
-        subscriber = service.delete___VARIABLE_productName:identifier___(model: model).sink(receiveCompletion: { [weak self] (completion) in
+        subscriber = service.deletePost(model: model).sink(receiveCompletion: { [weak self] (completion) in
             guard let strongSelf = self else { return }
             
             switch completion {
@@ -77,10 +83,10 @@ extension ___FILEBASENAMEASIDENTIFIER___ {
         }, receiveValue: {})
     }
     
-    func get___VARIABLE_productName:identifier___s() {
+    func getPosts() {
         didStartRequest?()
         
-        subscriber = service.get___VARIABLE_productName:identifier___s().sink(receiveCompletion: { [weak self] (completion) in
+        subscriber = service.getPosts().sink(receiveCompletion: { [weak self] (completion) in
             guard let strongSelf = self else { return }
             
             switch completion {
@@ -96,12 +102,12 @@ extension ___FILEBASENAMEASIDENTIFIER___ {
         }
     }
     
-    func update___VARIABLE_productName:identifier___() {
+    func updatePost() {
         guard let model = selectedModel else { return }
     
         didStartRequest?()
                 
-        subscriber = service.update___VARIABLE_productName:identifier___(model: model).sink(receiveCompletion: { [weak self] (completion) in
+        subscriber = service.updatePost(model: model).sink(receiveCompletion: { [weak self] (completion) in
             guard let strongSelf = self else { return }
             
             switch completion {
@@ -114,7 +120,7 @@ extension ___FILEBASENAMEASIDENTIFIER___ {
         }, receiveValue: {})
     }
     
-    func itemByIndex(index: Int) -> ___VARIABLE_productName:identifier___ {
+    func itemByIndex(index: Int) -> Post {
         return models[index]
     }
 }
