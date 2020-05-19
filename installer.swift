@@ -159,7 +159,7 @@ struct Alert {
     }
 }
 
-struct Template {
+struct Template: Equatable {
     var name: String
     var directory: String
     
@@ -187,6 +187,35 @@ extension Error {
     var domain: String { return (self as NSError).domain }
 }
 
+extension NSButton {
+    func setupButton(with title: String, type: NSButton.ButtonType, isEnabled: Bool, target: AnyObject?, action: Selector?, bezel: NSButton.BezelStyle?, font: NSFont?) {
+        self.title = title
+        self.setButtonType(type)
+        self.isEnabled = isEnabled
+        self.target = target
+        self.action = action
+        
+        if let bezelType = bezel {
+            self.bezelStyle = bezelType
+        }
+        
+        if let fontType = font {
+            self.font = fontType
+        }
+    }
+}
+
+extension NSTextField {
+    func setup(with title: String, backgroundColor: NSColor, isBezeled: Bool, isEditable: Bool, font: NSFont, align: NSTextAlignment) {
+        self.stringValue = title
+        self.backgroundColor = backgroundColor
+        self.isBezeled = isBezeled
+        self.isEditable = isEditable
+        self.font = font
+        self.alignment = align
+    }
+}
+
 // MARK: - AppDelegate
 
 class AppDelegate: NSObject, NSApplicationDelegate {
@@ -207,14 +236,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     let mvpButton = NSButton()
     let mvpBSButton = NSButton()
     let installButton = NSButton()
-
+    let uninstallButton = NSButton()
+    let buttonsStack = NSStackView()
+    
     // MARK: - Properties
     
     let handler = DelegatesHandler()
-    var isMvvmSelected = false
-    var isMvpSelected = false
-    var isMvvmBSSelected = false
-    var isMvpBSSelected = false
+    let mvvmTemplate = Template(name: Constants.ArchtFiles.mvvmTemplate, directory: Constants.FilesDirectory.mvvmArch)
+    let mvvmBSTemplate = Template(name: Constants.ArchtFiles.mvvmTemplate, directory: Constants.FilesDirectory.mvvmBsArch)
+    let mvpTemplate = Template(name: Constants.ArchtFiles.mvpTemplate, directory: Constants.FilesDirectory.mvpArch)
+    let mvpBSTemplate = Template(name: Constants.ArchtFiles.mvpTemplate, directory: Constants.FilesDirectory.mvpBsArch)
+    let bsTemplate = Template(name: Constants.UtilFiles.baseServiceTemplate, directory: Constants.FilesDirectory.utils)
     
     // MARK: - NSApplicationDelegate
     
@@ -239,80 +271,41 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let logoUrl = URL(fileURLWithPath: Constants.Paths.Images.logoPath)
         let logoImage = NSImage(byReferencing: logoUrl)
         imageView.image = logoImage
-        
-        window.contentView!.addSubview(imageView)
-        
+                
         // Create subtitle
-        subtitle.stringValue = "Choose the templates you want to install:"
-        subtitle.backgroundColor = .clear
-        subtitle.isBezeled = false
-        subtitle.isEditable = false
-        subtitle.font = NSFont.systemFont(ofSize: 18)
-        subtitle.alignment = .center
+        subtitle.setup(with: "Choose the templates you want to install:", backgroundColor: .clear, isBezeled: false, isEditable: false, font: NSFont.systemFont(ofSize: 18), align: .center)
         
-        window.contentView!.addSubview(subtitle)
-
         // Create Base Service title
-        baseServiceTitle.stringValue = "Include\nBase Service"
-        baseServiceTitle.backgroundColor = .clear
-        baseServiceTitle.isBezeled = false
-        baseServiceTitle.isEditable = false
-        baseServiceTitle.font = NSFont.systemFont(ofSize: 14)
-        baseServiceTitle.alignment = .center
-        
-        window.contentView!.addSubview(baseServiceTitle)
+        baseServiceTitle.setup(with: "Include\nBase Service", backgroundColor: .clear, isBezeled: false, isEditable: false, font: NSFont.systemFont(ofSize: 14), align: .center)
         
         // Create buttons
-        mvvmButton.title = "MVVM Template"
-        mvvmButton.setButtonType(.switch)
-        mvvmButton.setButtonType(.toggle)
-        mvvmButton.target = self
-        mvvmButton.action = #selector(mvvmButtonAction)
+        mvvmButton.setupButton(with: "MVVM Template", type: .switch, isEnabled: true, target: self, action: #selector(mvvmButtonAction), bezel: nil, font: nil)
         
-        mvvmBSButton.title = ""
-        mvvmBSButton.setButtonType(.switch)
-        mvvmBSButton.isEnabled = isMvvmBSSelected
-        mvvmBSButton.setButtonType(.toggle)
-        mvvmBSButton.target = self
-        mvvmBSButton.action = #selector(mvvmBSButtonAction)
+        mvvmBSButton.setupButton(with: "", type: .switch, isEnabled: mvvmBSButton.stringValue == "1", target: self, action: #selector(mvvmBSButtonAction), bezel: nil, font: nil)
         
-        mvpButton.title = "MVP Template"
-        mvpButton.setButtonType(.switch)
-        mvpButton.setButtonType(.toggle)
-        mvpButton.target = self
-        mvpButton.action = #selector(mvpButtonAction)
+        mvpButton.setupButton(with: "MVP Template", type: .switch, isEnabled: true, target: self, action: #selector(mvpButtonAction), bezel: nil, font: nil)
         
-        mvpBSButton.title = ""
-        mvpBSButton.setButtonType(.switch)
-        mvpBSButton.isEnabled = isMvpBSSelected
-        mvpBSButton.setButtonType(.toggle)
-        mvpBSButton.target = self
-        mvpBSButton.action = #selector(mvpBSButtonAction)
+        mvpBSButton.setupButton(with: "", type: .switch, isEnabled: mvpBSButton.stringValue == "1", target: self, action: #selector(mvpBSButtonAction), bezel: nil, font: nil)
         
-        installButton.title = "Install"
-        installButton.setButtonType(.toggle)
-        installButton.target = self
-        installButton.action = #selector(installAction)
-        installButton.font = NSFont.systemFont(ofSize: 14)
-        installButton.bezelStyle = .rounded
+        installButton.setupButton(with: "Install", type: .toggle, isEnabled: true, target: self, action: #selector(installAction), bezel: .rounded, font: NSFont.systemFont(ofSize: 14))
         
-        window.contentView!.addSubview(mvvmButton)
-        window.contentView!.addSubview(mvvmBSButton)
-        window.contentView!.addSubview(mvpButton)
-        window.contentView!.addSubview(mvpBSButton)
-        window.contentView!.addSubview(installButton)
+        uninstallButton.setupButton(with: "Uninstall", type: .toggle, isEnabled: false, target: self, action: #selector(uninstallAction), bezel: .rounded, font: NSFont.systemFont(ofSize: 14))
+        
+        buttonsStack.orientation = .horizontal
+        buttonsStack.setViews([installButton, uninstallButton], in: .center)
+        
+        addViews(views: [imageView, subtitle, baseServiceTitle, mvvmButton, mvvmBSButton, mvpButton, mvpBSButton, buttonsStack])
+    }
+    
+    private func addViews(views: [NSView]) {
+        for view in views {
+            window.contentView!.addSubview(view)
+        }
     }
     
     private func setupLayout() {
-        imageView.translatesAutoresizingMaskIntoConstraints = false
-        title.translatesAutoresizingMaskIntoConstraints = false
-        subtitle.translatesAutoresizingMaskIntoConstraints = false
-        baseServiceTitle.translatesAutoresizingMaskIntoConstraints = false
-        mvvmButton.translatesAutoresizingMaskIntoConstraints = false
-        mvvmBSButton.translatesAutoresizingMaskIntoConstraints = false
-        mvpButton.translatesAutoresizingMaskIntoConstraints = false
-        mvpBSButton.translatesAutoresizingMaskIntoConstraints = false
-        installButton.translatesAutoresizingMaskIntoConstraints = false
+        translatesIntoConstraints(views: [imageView, title, subtitle, baseServiceTitle, mvvmButton, mvvmBSButton,
+                                          mvpButton, mvpBSButton, installButton, uninstallButton, buttonsStack])
         
         NSLayoutConstraint.activate([
             imageView.topAnchor.constraint(equalTo: window.contentView!.topAnchor, constant: 30),
@@ -343,48 +336,72 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             mvpBSButton.centerYAnchor.constraint(equalTo: mvpButton.centerYAnchor, constant: 0),
             mvpBSButton.heightAnchor.constraint(equalToConstant: 40),
             mvpBSButton.centerXAnchor.constraint(equalTo: window.contentView!.centerXAnchor, constant: 0),
-
-            installButton.topAnchor.constraint(equalTo: mvpBSButton.bottomAnchor, constant: 30),
-            installButton.centerXAnchor.constraint(equalTo: window.contentView!.centerXAnchor, constant: 0),
-            installButton.widthAnchor.constraint(equalToConstant: 100)
+            
+            buttonsStack.topAnchor.constraint(equalTo: mvpButton.bottomAnchor, constant: 30),
+            buttonsStack.centerXAnchor.constraint(equalTo: window.contentView!.centerXAnchor, constant: 0),
+            buttonsStack.widthAnchor.constraint(equalToConstant: 200)
         ])
+    }
+    
+    private func translatesIntoConstraints(views: [NSView]) {
+        for view in views {
+            view.translatesAutoresizingMaskIntoConstraints = false
+        }
     }
     
     // MARK: - Actions
     
     @objc func mvvmButtonAction() {
-        isMvvmSelected = mvvmButton.stringValue == "1"
-        mvvmBSButton.isEnabled = isMvvmSelected
+        mvvmBSButton.isEnabled = mvvmButton.stringValue == "1"
+        
+        if mvvmBSButton.isEnabled {
+            templates.append(mvvmTemplate)
+        } else {
+            _ = templates.firstIndex(of: mvvmTemplate).map { templates.remove(at: $0) }
+        }
     }
     
     @objc func mvpButtonAction() {
-        isMvpSelected = mvpButton.stringValue == "1"
-        mvpBSButton.isEnabled = isMvpSelected
+        mvpBSButton.isEnabled = mvpButton.stringValue == "1"
+        
+        if mvpBSButton.isEnabled {
+            templates.append(mvpTemplate)
+        } else {
+            _ = templates.firstIndex(of: mvpTemplate).map { templates.remove(at: $0) }
+        }
     }
     
     @objc func mvvmBSButtonAction() {
-        isMvvmBSSelected = mvvmBSButton.stringValue == "1"
-        mvvmBSButton.isEnabled = isMvvmBSSelected
+        if mvvmBSButton.stringValue == "1" {
+            _ = templates.firstIndex(of: mvvmTemplate).map { templates.remove(at: $0) }
+            templates.append(mvvmBSTemplate)
+            
+            if !FileManager.default.fileExists(atPath: "\(destinationPath)/\(bsTemplate.name)") {
+                templates.append(bsTemplate)
+            }
+        } else {
+            _ = templates.firstIndex(of: mvvmBSTemplate).map { templates.remove(at: $0) }
+            _ = templates.firstIndex(of: bsTemplate).map { templates.remove(at: $0) }
+            templates.append(mvvmTemplate)
+        }
     }
     
     @objc func mvpBSButtonAction() {
-        isMvpBSSelected = mvpBSButton.stringValue == "1"
-        mvpBSButton.isEnabled = isMvpBSSelected
+        if mvpBSButton.stringValue == "1" {
+            _ = templates.firstIndex(of: mvpTemplate).map { templates.remove(at: $0) }
+            templates.append(mvpBSTemplate)
+            
+            if !FileManager.default.fileExists(atPath: "\(destinationPath)/\(bsTemplate.name)") {
+                templates.append(bsTemplate)
+            }
+        } else {
+             _ = templates.firstIndex(of: mvpBSTemplate).map { templates.remove(at: $0) }
+            _ = templates.firstIndex(of: bsTemplate).map { templates.remove(at: $0) }
+            templates.append(mvpTemplate)
+        }
     }
     
     @objc func installAction () {
-        if isMvvmSelected {
-            templates.append(Template(name: Constants.ArchtFiles.mvvmTemplate, directory: isMvvmBSSelected ? Constants.FilesDirectory.mvvmBsArch : Constants.FilesDirectory.mvvmArch))
-        }
-        
-        if isMvpSelected {
-            templates.append(Template(name: Constants.ArchtFiles.mvpTemplate, directory: isMvpBSSelected ? Constants.FilesDirectory.mvpBsArch : Constants.FilesDirectory.mvpArch))
-        }
-        
-        if isMvvmBSSelected || isMvpBSSelected {
-            templates.append(Template(name: Constants.UtilFiles.baseServiceTemplate, directory: Constants.FilesDirectory.utils))
-        }
-        
         taskManager.enter()
         createDirectory { [weak self] (error) in
             guard let strongSelf = self else { return }
@@ -411,6 +428,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 templatesInstalled = 0
             }
         }
+    }
+    
+    @objc func uninstallAction () {
+    
     }
 }
 
@@ -505,3 +526,5 @@ func replace(template: Template, at destination: String) throws {
 let delegate = AppDelegate()
 app.delegate = delegate
 app.run()
+
+
