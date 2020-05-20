@@ -176,9 +176,9 @@ struct ErrorMessage {
 let fileManager = FileManager.default
 let destinationPath = bash(command: "xcode-select", arguments: ["--print-path"]).appending(Constants.Paths.destinationPath)
 let taskManager = DispatchGroup()
-var templates: [Template] = []
-var templatesCount: Int = 0
-var templatesInstalled = 0
+var selectedTemplates: [Template] = []
+var processingTemplates: [Template] = []
+var templatesInstalled: [Template] = []
 
 // MARK: - Extensions
 
@@ -355,9 +355,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         mvvmBSButton.isEnabled = mvvmButton.stringValue == "1"
         
         if mvvmBSButton.isEnabled {
-            templates.append(mvvmTemplate)
+            selectedTemplates.append(mvvmTemplate)
         } else {
-            _ = templates.firstIndex(of: mvvmTemplate).map { templates.remove(at: $0) }
+            _ = selectedTemplates.firstIndex(of: mvvmTemplate).map { selectedTemplates.remove(at: $0) }
         }
     }
     
@@ -365,39 +365,39 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         mvpBSButton.isEnabled = mvpButton.stringValue == "1"
         
         if mvpBSButton.isEnabled {
-            templates.append(mvpTemplate)
+            selectedTemplates.append(mvpTemplate)
         } else {
-            _ = templates.firstIndex(of: mvpTemplate).map { templates.remove(at: $0) }
+            _ = selectedTemplates.firstIndex(of: mvpTemplate).map { selectedTemplates.remove(at: $0) }
         }
     }
     
     @objc func mvvmBSButtonAction() {
         if mvvmBSButton.stringValue == "1" {
-            _ = templates.firstIndex(of: mvvmTemplate).map { templates.remove(at: $0) }
-            templates.append(mvvmBSTemplate)
+            _ = selectedTemplates.firstIndex(of: mvvmTemplate).map { selectedTemplates.remove(at: $0) }
+            selectedTemplates.append(mvvmBSTemplate)
             
             if !FileManager.default.fileExists(atPath: "\(destinationPath)/\(bsTemplate.name)") {
-                templates.append(bsTemplate)
+                selectedTemplates.append(bsTemplate)
             }
         } else {
-            _ = templates.firstIndex(of: mvvmBSTemplate).map { templates.remove(at: $0) }
-            _ = templates.firstIndex(of: bsTemplate).map { templates.remove(at: $0) }
-            templates.append(mvvmTemplate)
+            _ = selectedTemplates.firstIndex(of: mvvmBSTemplate).map { selectedTemplates.remove(at: $0) }
+            _ = selectedTemplates.firstIndex(of: bsTemplate).map { selectedTemplates.remove(at: $0) }
+            selectedTemplates.append(mvvmTemplate)
         }
     }
     
     @objc func mvpBSButtonAction() {
         if mvpBSButton.stringValue == "1" {
-            _ = templates.firstIndex(of: mvpTemplate).map { templates.remove(at: $0) }
-            templates.append(mvpBSTemplate)
+            _ = selectedTemplates.firstIndex(of: mvpTemplate).map { selectedTemplates.remove(at: $0) }
+            selectedTemplates.append(mvpBSTemplate)
             
             if !FileManager.default.fileExists(atPath: "\(destinationPath)/\(bsTemplate.name)") {
-                templates.append(bsTemplate)
+                selectedTemplates.append(bsTemplate)
             }
         } else {
-             _ = templates.firstIndex(of: mvpBSTemplate).map { templates.remove(at: $0) }
-            _ = templates.firstIndex(of: bsTemplate).map { templates.remove(at: $0) }
-            templates.append(mvpTemplate)
+             _ = selectedTemplates.firstIndex(of: mvpBSTemplate).map { selectedTemplates.remove(at: $0) }
+            _ = selectedTemplates.firstIndex(of: bsTemplate).map { selectedTemplates.remove(at: $0) }
+            selectedTemplates.append(mvpTemplate)
         }
     }
     
@@ -416,16 +416,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
 
-        templatesCount = templates.count
+        processingTemplates = selectedTemplates
         installTemplates(on: window)
 
         taskManager.notify(queue: .main) { [weak self] in
             guard let strongSelf = self else { return }
             
-            if templatesInstalled == templatesCount {
-                let alert = Alert(message: templatesInstalled == 1 ? Constants.Messages.successMessageSingular : Constants.Messages.successMessagePlural, okTitle: "OK", type: .success)
+            if templatesInstalled.count == selectedTemplates.count {
+                let alert = Alert(message: templatesInstalled.count == 1 ? Constants.Messages.successMessageSingular : Constants.Messages.successMessagePlural, okTitle: "OK", type: .success)
                 alert.show(on: strongSelf.window)
-                templatesInstalled = 0
+                templatesInstalled = []
             }
         }
     }
@@ -438,12 +438,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 // MARK: - Files Management
 
 func installTemplates(on window: NSWindow) {
-    guard templates.count > 0 else { return }
+    guard processingTemplates.count > 0 else { return }
     
-    let template = templates.first!
+    let template = processingTemplates.first!
     
     func nextTemplate() {
-        templates.removeFirst()
+        processingTemplates.removeFirst()
         installTemplates(on: window)
     }
     
@@ -456,7 +456,7 @@ func installTemplates(on window: NSWindow) {
             })
             alert.show(on: window)
         } else {
-            templatesInstalled += 1
+            templatesInstalled.append(template)
             nextTemplate()
             taskManager.leave()
         }
@@ -466,7 +466,7 @@ func installTemplates(on window: NSWindow) {
 func install(template: Template, on window: NSWindow, completion:((_ error: ErrorMessage?) -> Void)?) {
     if !fileManager.fileExists(atPath: "\(destinationPath)/\(template.name)") {
         do {
-            try fileManager.copyItem(atPath: template.path(), toPath: "\(destinationPath)/\(template.name)")
+            try add(template: template)
         } catch let error {
             completion?(ErrorMessage(message: Constants.Messages.errorMessage, description: error.localizedDescription))
             return
@@ -478,7 +478,7 @@ func install(template: Template, on window: NSWindow, completion:((_ error: Erro
             let alert = Alert(message: String(format: Constants.Messages.replaceMessage, template.name), okTitle: "Replace", cancelTitle: "Cancel", type: .warning, okAction: {
                 DispatchQueue.main.async {
                     do {
-                        try replace(template: template, at: destinationPath)
+                        try replace(template: template)
                     } catch let error {
                         let description = error.code == Constants.ErrorCode.permissionDeniedCode ? Constants.Messages.permissionDeniedMessage : "\(error)"
                         completion?(ErrorMessage(message: Constants.Messages.errorMessage, description: description))
@@ -514,17 +514,29 @@ func createDirectory(completion:((_ error: ErrorMessage?) -> Void)?) {
     completion?(nil)
 }
 
-func replace(template: Template, at destination: String) throws {
-    let oldPath = URL(fileURLWithPath: "\(destination)/\(template.name)")
+func add(template: Template) throws {
+    try fileManager.copyItem(atPath: template.path(), toPath: "\(destinationPath)/\(template.name)")
+}
+
+func replace(template: Template) throws {
+    let oldPath = URL(fileURLWithPath: "\(destinationPath)/\(template.name)")
     let newPath = URL(fileURLWithPath: template.path())
         
     try fileManager.removeItem(at: oldPath)
     try fileManager.copyItem(atPath: newPath.path, toPath: oldPath.path)
 }
 
+func remove(template: Template) throws {
+    let path = URL(fileURLWithPath: "\(destinationPath)/\(template.name)")
+    
+    try fileManager.removeItem(at: path)
+}
+
 // Run app
 let delegate = AppDelegate()
 app.delegate = delegate
 app.run()
+
+
 
 
