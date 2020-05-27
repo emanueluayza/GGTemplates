@@ -1,5 +1,5 @@
 //
-//  install.swift
+//  installer.swift
 //  GGTemplatesInstaller
 //
 //  Created by Emanuel Luayza on 07/05/2020.
@@ -23,6 +23,8 @@ struct Constants {
     struct ArchtFiles {
         static let mvvmTemplate = "MVVM.xctemplate"
         static let mvpTemplate = "MVP.xctemplate"
+        static let mvvmBSTemplate = "MVVM+BS.xctemplate"
+        static let mvpBSTemplate = "MVP+BS.xctemplate"
     }
     
     struct UtilFiles {
@@ -51,6 +53,10 @@ struct Constants {
         static let successfullReplaceMessage = "The GGT Template (%@) has been replaced for you with the new version."
         static let skipReplacementMessage = "The GGT Template (%@) replacement was skipped."
         static let permissionDeniedMessage = "You don't have permission to install templates. Please run the installer in administrator mode."
+        static let deleteMessage = "Are you sure you want to delete the %@?"
+        static let deleteSuccessMessagePlural = "The GGT Templates were uninstalled succesfully."
+        static let deleteSuccessMessageSingular = "The GGT Template was uninstalled succesfully."
+        static let deletePermissionDeniedMessage = "You don't have permission to uninstall templates. Please run the installer in administrator mode."
     }
     
     struct ErrorCode {
@@ -176,6 +182,9 @@ struct ErrorMessage {
 let fileManager = FileManager.default
 let destinationPath = bash(command: "xcode-select", arguments: ["--print-path"]).appending(Constants.Paths.destinationPath)
 let taskManager = DispatchGroup()
+let checked = "1"
+let unchecked = "0"
+
 var selectedTemplates: [Template] = []
 var processingTemplates: [Template] = []
 var templatesInstalled: [Template] = []
@@ -202,6 +211,10 @@ extension NSButton {
         if let fontType = font {
             self.font = fontType
         }
+    }
+    
+    func isChecked() -> Bool {
+        return stringValue == checked
     }
 }
 
@@ -243,9 +256,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     
     let handler = DelegatesHandler()
     let mvvmTemplate = Template(name: Constants.ArchtFiles.mvvmTemplate, directory: Constants.FilesDirectory.mvvmArch)
-    let mvvmBSTemplate = Template(name: Constants.ArchtFiles.mvvmTemplate, directory: Constants.FilesDirectory.mvvmBsArch)
+    let mvvmBSTemplate = Template(name: Constants.ArchtFiles.mvvmBSTemplate, directory: Constants.FilesDirectory.mvvmBsArch)
     let mvpTemplate = Template(name: Constants.ArchtFiles.mvpTemplate, directory: Constants.FilesDirectory.mvpArch)
-    let mvpBSTemplate = Template(name: Constants.ArchtFiles.mvpTemplate, directory: Constants.FilesDirectory.mvpBsArch)
+    let mvpBSTemplate = Template(name: Constants.ArchtFiles.mvpBSTemplate, directory: Constants.FilesDirectory.mvpBsArch)
     let bsTemplate = Template(name: Constants.UtilFiles.baseServiceTemplate, directory: Constants.FilesDirectory.utils)
     
     // MARK: - NSApplicationDelegate
@@ -281,11 +294,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Create buttons
         mvvmButton.setupButton(with: "MVVM Template", type: .switch, isEnabled: true, target: self, action: #selector(mvvmButtonAction), bezel: nil, font: nil)
         
-        mvvmBSButton.setupButton(with: "", type: .switch, isEnabled: mvvmBSButton.stringValue == "1", target: self, action: #selector(mvvmBSButtonAction), bezel: nil, font: nil)
+        mvvmBSButton.setupButton(with: "", type: .switch, isEnabled: mvvmBSButton.isChecked(), target: self, action: #selector(mvvmBSButtonAction), bezel: nil, font: nil)
         
         mvpButton.setupButton(with: "MVP Template", type: .switch, isEnabled: true, target: self, action: #selector(mvpButtonAction), bezel: nil, font: nil)
         
-        mvpBSButton.setupButton(with: "", type: .switch, isEnabled: mvpBSButton.stringValue == "1", target: self, action: #selector(mvpBSButtonAction), bezel: nil, font: nil)
+        mvpBSButton.setupButton(with: "", type: .switch, isEnabled: mvpBSButton.isChecked(), target: self, action: #selector(mvpBSButtonAction), bezel: nil, font: nil)
         
         installButton.setupButton(with: "Install", type: .toggle, isEnabled: true, target: self, action: #selector(installAction), bezel: .rounded, font: NSFont.systemFont(ofSize: 14))
         
@@ -295,6 +308,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         buttonsStack.setViews([installButton, uninstallButton], in: .center)
         
         addViews(views: [imageView, subtitle, baseServiceTitle, mvvmButton, mvvmBSButton, mvpButton, mvpBSButton, buttonsStack])
+        
+        setupButtonsSelection()
     }
     
     private func addViews(views: [NSView]) {
@@ -348,11 +363,50 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             view.translatesAutoresizingMaskIntoConstraints = false
         }
     }
+
+    private func setupButtonsSelection() {
+        let verifyMvvmBS = verify(template: mvvmBSTemplate)
+        let verifyMvpBS = verify(template: mvpBSTemplate)
+        let verifyBS = verify(template: bsTemplate)
+        
+        if verifyMvvmBS && verifyBS {
+            mvvmBSButton.stringValue = checked
+            selectedTemplates.append(mvvmBSTemplate)
+        }
+        
+        if verifyMvpBS && verifyBS {
+            mvpBSButton.stringValue = checked
+            selectedTemplates.append(mvpBSTemplate)
+        }
+        
+        if verify(template: mvvmTemplate) || verifyMvvmBS {
+            mvvmButton.stringValue = checked
+            
+            if !verifyMvvmBS {
+                selectedTemplates.append(mvvmTemplate)
+            }
+        }
+        
+        if verify(template: mvpTemplate) || verifyMvpBS {
+            mvpButton.stringValue = checked
+            
+            if !verifyMvpBS {
+                selectedTemplates.append(mvpTemplate)
+            }
+        }
+        
+        if verifyMvvmBS || verifyMvpBS {
+            selectedTemplates.append(bsTemplate)
+        }
+        
+        mvvmBSButton.isEnabled = mvvmButton.isChecked()
+        mvpBSButton.isEnabled = mvpButton.isChecked()
+    }
     
     // MARK: - Actions
     
     @objc func mvvmButtonAction() {
-        mvvmBSButton.isEnabled = mvvmButton.stringValue == "1"
+        mvvmBSButton.isEnabled = mvvmButton.stringValue == checked
         
         if mvvmBSButton.isEnabled {
             selectedTemplates.append(mvvmTemplate)
@@ -362,7 +416,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     @objc func mvpButtonAction() {
-        mvpBSButton.isEnabled = mvpButton.stringValue == "1"
+        mvpBSButton.isEnabled = mvpButton.stringValue == checked
         
         if mvpBSButton.isEnabled {
             selectedTemplates.append(mvpTemplate)
@@ -372,7 +426,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     @objc func mvvmBSButtonAction() {
-        if mvvmBSButton.stringValue == "1" {
+        if mvvmBSButton.stringValue == checked {
             _ = selectedTemplates.firstIndex(of: mvvmTemplate).map { selectedTemplates.remove(at: $0) }
             selectedTemplates.append(mvvmBSTemplate)
             
@@ -387,7 +441,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     @objc func mvpBSButtonAction() {
-        if mvpBSButton.stringValue == "1" {
+        if mvpBSButton.stringValue == checked {
             _ = selectedTemplates.firstIndex(of: mvpTemplate).map { selectedTemplates.remove(at: $0) }
             selectedTemplates.append(mvpBSTemplate)
             
@@ -464,7 +518,7 @@ func installTemplates(on window: NSWindow) {
 }
 
 func install(template: Template, on window: NSWindow, completion:((_ error: ErrorMessage?) -> Void)?) {
-    if !fileManager.fileExists(atPath: "\(destinationPath)/\(template.name)") {
+    if !verify(template: template) {
         do {
             try add(template: template)
         } catch let error {
@@ -494,6 +548,26 @@ func install(template: Template, on window: NSWindow, completion:((_ error: Erro
     }
 }
 
+func uninstall(template: Template, on window: NSWindow, completion:((_ error: ErrorMessage?) -> Void)?) {
+    DispatchQueue.main.async {
+        let alert = Alert(message: String(format: Constants.Messages.deleteMessage, template.name), okTitle: "Delete", cancelTitle: "Cancel", type: .warning, okAction: {
+            DispatchQueue.main.async {
+                do {
+                    try remove(template: template)
+                } catch let error {
+                    let description = error.code == Constants.ErrorCode.permissionDeniedCode ? Constants.Messages.permissionDeniedMessage : "\(error)"
+                    completion?(ErrorMessage(message: Constants.Messages.errorMessage, description: description))
+                    return
+                }
+
+                completion?(nil)
+            }
+        })
+
+        alert.show(on: window)
+    }
+}
+
 func createDirectory(completion:((_ error: ErrorMessage?) -> Void)?) {
     var isDir : ObjCBool = false
                 
@@ -512,6 +586,10 @@ func createDirectory(completion:((_ error: ErrorMessage?) -> Void)?) {
     }
     
     completion?(nil)
+}
+
+func verify(template: Template) -> Bool {
+    return fileManager.fileExists(atPath: "\(destinationPath)/\(template.name)")
 }
 
 func add(template: Template) throws {
@@ -536,7 +614,6 @@ func remove(template: Template) throws {
 let delegate = AppDelegate()
 app.delegate = delegate
 app.run()
-
 
 
 
